@@ -5,9 +5,10 @@ spring:
   application:
     name: auth-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/auth}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/rupee_db}
     username: ${DB_USER:rupee}
     password: ${DB_PASSWORD:rupee_local}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
@@ -15,11 +16,30 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        default_schema: auth
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: kiran.chinna223@gmail.com
+    password: gfgutmnztqybtnzs
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    # Use this to set the "From" display name
+    default-encoding: UTF-8
 
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    # Forces the service to register itself using localhost
+    prefer-ip-address: false
+    hostname: localhost
 
 # JWT — secret MUST be supplied via env in real environments.
 rupee:

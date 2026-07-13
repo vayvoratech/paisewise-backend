@@ -1,14 +1,18 @@
 package in.sapphirus.rupee.auth.service;
 
 import in.sapphirus.rupee.auth.api.AuthDtos.*;
+import in.sapphirus.rupee.auth.domain.OtpEntity;
 import in.sapphirus.rupee.auth.domain.RefreshToken;
 import in.sapphirus.rupee.auth.domain.User;
+import in.sapphirus.rupee.auth.repo.OtpRepository;
 import in.sapphirus.rupee.auth.repo.RefreshTokenRepository;
 import in.sapphirus.rupee.auth.repo.UserRepository;
 import in.sapphirus.rupee.security.JwtProperties;
 import in.sapphirus.rupee.security.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,80 +20,124 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
-/**
- * Core authentication logic: register, login, and refresh-token rotation.
- *
- * SECURITY notes:
- *  - Passwords are stored as BCrypt hashes only.
- *  - Login returns the SAME generic error whether the phone is unknown or the
- *    password is wrong, to avoid user enumeration.
- *  - Refresh tokens are stored hashed; on each refresh the old token is revoked
- *    and a new pair issued (rotation), limiting the blast radius of a leak.
- */
 @Service
 public class AuthService {
 
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
+    private final OtpRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwt;
     private final JwtProperties jwtProps;
+    private final JavaMailSender mailSender;
 
     public AuthService(UserRepository users, RefreshTokenRepository refreshTokens,
-                       PasswordEncoder passwordEncoder, JwtService jwt, JwtProperties jwtProps) {
+                       OtpRepository otpRepository, PasswordEncoder passwordEncoder,
+                       JwtService jwt, JwtProperties jwtProps, JavaMailSender mailSender) {
         this.users = users;
         this.refreshTokens = refreshTokens;
+        this.otpRepository = otpRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwt = jwt;
         this.jwtProps = jwtProps;
+        this.mailSender = mailSender;
     }
+
+    // --- CORE AUTHENTICATION ---
 
     @Transactional
     public AuthResponse register(RegisterRequest req) {
-        if (users.existsByPhone(req.phone())) {
-            throw AuthException.phoneTaken();
-        }
-        User user = users.save(new User(req.phone(), req.name(), passwordEncoder.encode(req.password())));
+        if (users.existsByPhone(req.phone())) throw new RuntimeException("Phone already taken");
+
+        User user = new User(req.phone(), req.name(), req.email(), passwordEncoder.encode(req.password()));
+        user = users.save(user);
+
         return issueFor(user);
     }
 
     @Transactional
     public AuthResponse login(LoginRequest req) {
-        User user = users.findByPhone(req.phone()).orElseThrow(AuthException::invalidCredentials);
+        User user = users.findByPhone(req.phone()).orElseThrow(() -> new RuntimeException("Invalid credentials"));
         if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
-            throw AuthException.invalidCredentials();
+            throw new RuntimeException("Invalid credentials");
         }
         return issueFor(user);
     }
 
     @Transactional
     public Tokens refresh(String presentedRefreshToken) {
-        Claims claims;
-        try {
-            claims = jwt.parse(presentedRefreshToken);
-        } catch (JwtException e) {
-            throw AuthException.invalidRefresh();
-        }
-        if (!jwt.isRefreshToken(claims)) {
-            throw AuthException.invalidRefresh();
-        }
-
+        Claims claims = validateAndParseRefreshToken(presentedRefreshToken);
         String hash = sha256(presentedRefreshToken);
-        RefreshToken stored = refreshTokens.findByTokenHash(hash).orElseThrow(AuthException::invalidRefresh);
-        if (!stored.isActive()) {
-            throw AuthException.invalidRefresh();
-        }
 
-        // Rotate: revoke the presented token, mint a fresh pair.
+        RefreshToken stored = refreshTokens.findByTokenHash(hash)
+                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+
+        if (!stored.isActive()) throw new RuntimeException("Refresh token revoked");
+
         stored.revoke();
-        UUID userId = UUID.fromString(claims.getSubject());
-        String phone = claims.get("phone", String.class);
-        return mintTokens(userId, phone);
+        return mintTokens(UUID.fromString(claims.getSubject()), claims.get("phone", String.class));
     }
+
+    // --- PASSWORD RESET FLOW ---
+
+    @Transactional
+    public void forgotPassword(String email) {
+        try {
+            System.out.println("DEBUG: Looking for email: " + email);
+
+            users.findByEmail(email).ifPresentOrElse(user -> {
+                System.out.println("DEBUG: User found, generating OTP...");
+
+                // --- YOUR ORIGINAL LOGIC IS HERE ---
+                otpRepository.deleteByEmail(email);
+                String code = String.format("%06d", new Random().nextInt(999999));
+
+                OtpEntity otp = new OtpEntity();
+                otp.setEmail(email);
+                otp.setOtp(passwordEncoder.encode(code));
+                otp.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+                otpRepository.save(otp);
+
+                sendOtpEmail(email, code);
+                System.out.println("DEBUG: Email sent successfully.");
+                // -----------------------------------
+
+            }, () -> {
+                System.out.println("DEBUG: User not found in DB.");
+                throw new RuntimeException("User not found");
+            });
+
+        } catch (Exception e) {
+            System.err.println("CRITICAL ERROR in forgotPassword: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    public boolean verifyOtp(String email, String otp) {
+        return otpRepository.findByEmail(email)
+                .map(o -> !o.isVerified() &&
+                        o.getExpiresAt().isAfter(LocalDateTime.now()) &&
+                        passwordEncoder.matches(otp, o.getOtp()))
+                .orElse(false);
+    }
+
+    @Transactional
+    public void resetPassword(String email, String newPassword) {
+        users.findByEmail(email).ifPresent(user -> {
+            user.setPassword(passwordEncoder.encode(newPassword));
+            users.save(user);
+            otpRepository.deleteByEmail(email);
+        });
+    }
+
+    // --- HELPER METHODS ---
 
     private AuthResponse issueFor(User user) {
         Tokens tokens = mintTokens(user.getId(), user.getPhone());
@@ -103,6 +151,24 @@ public class AuthService {
         Instant expiry = Instant.now().plusMillis(jwtProps.getRefreshTokenTtlMs());
         refreshTokens.save(new RefreshToken(userId, sha256(refresh), expiry));
         return new Tokens(access, refresh);
+    }
+
+    private void sendOtpEmail(String email, String code) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Password Reset OTP");
+        message.setText("Your OTP is: " + code + ". Valid for 5 minutes.");
+        mailSender.send(message);
+    }
+
+    private Claims validateAndParseRefreshToken(String token) {
+        try {
+            Claims claims = jwt.parse(token);
+            if (!jwt.isRefreshToken(claims)) throw new RuntimeException("Invalid token type");
+            return claims;
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid refresh token");
+        }
     }
 
     private static String sha256(String value) {

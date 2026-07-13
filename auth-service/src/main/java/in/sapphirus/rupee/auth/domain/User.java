@@ -1,12 +1,14 @@
 package in.sapphirus.rupee.auth.domain;
 
 import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = "phone"))
+@Table(name = "users", schema = "auth", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "phone"),
+        @UniqueConstraint(columnNames = "email")
+})
 public class User {
 
     @Id
@@ -19,6 +21,12 @@ public class User {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private String email;
+
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
     /** BCrypt hash — never the plaintext password. */
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
@@ -26,20 +34,56 @@ public class User {
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt = Instant.now();
+
+    // Default constructor (required by JPA)
     protected User() {}
 
-    public User(String phone, String name, String passwordHash) {
+    // All-args constructor
+    public User(UUID id, String phone, String name, String email, boolean emailVerified, String passwordHash, Instant createdAt, Instant updatedAt) {
+        this.id = id;
         this.phone = phone;
         this.name = name;
+        this.email = email;
+        this.emailVerified = emailVerified;
         this.passwordHash = passwordHash;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public UUID getId() { return id; }
-    public String getPhone() { return phone; }
-    public String getName() { return name; }
-    public String getPasswordHash() { return passwordHash; }
-    public Instant getCreatedAt() { return createdAt; }
+    // Custom constructor for registration
+    public User(String phone, String name, String email, String passwordHash) {
+        this.phone = phone;
+        this.name = name;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.updatedAt = Instant.now();
+        this.createdAt = Instant.now();
+    }
 
+    // Getters and Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+
+    public String getPasswordHash() { return passwordHash; }
+    public void setPassword(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
