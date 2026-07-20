@@ -11,6 +11,7 @@ import in.sapphirus.rupee.security.JwtProperties;
 import in.sapphirus.rupee.security.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,7 +54,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest req) {
-        if (users.existsByPhone(req.phone())) throw new RuntimeException("Phone already taken");
+        if (users.existsByPhone(req.phone())) {
+            throw AuthException.phoneTaken();
+        }
 
         User user = new User(req.phone(), req.name(), req.email(), passwordEncoder.encode(req.password()));
         user = users.save(user);
@@ -63,9 +66,13 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest req) {
-        User user = users.findByPhone(req.phone()).orElseThrow(() -> new RuntimeException("Invalid credentials"));
+        User user = users.findByPhone(req.phone())
+                .orElseThrow(AuthException::invalidCredentials);
+
         if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
+            // Same message as "user not found" above so we don't leak which part
+            // of the credentials was wrong.
+            throw AuthException.invalidCredentials();
         }
         return issueFor(user);
     }
@@ -76,9 +83,11 @@ public class AuthService {
         String hash = sha256(presentedRefreshToken);
 
         RefreshToken stored = refreshTokens.findByTokenHash(hash)
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+                .orElseThrow(AuthException::invalidRefresh);
 
-        if (!stored.isActive()) throw new RuntimeException("Refresh token revoked");
+        if (!stored.isActive()) {
+            throw AuthException.invalidRefresh();
+        }
 
         stored.revoke();
         return mintTokens(UUID.fromString(claims.getSubject()), claims.get("phone", String.class));
@@ -110,13 +119,16 @@ public class AuthService {
 
             }, () -> {
                 System.out.println("DEBUG: User not found in DB.");
-                throw new RuntimeException("User not found");
+                throw AuthException.userNotFound();
             });
 
+        } catch (AuthException e) {
+            // Expected, already-mapped error (e.g. user not found) — just rethrow
+            throw e;
         } catch (Exception e) {
             System.err.println("CRITICAL ERROR in forgotPassword: " + e.getMessage());
             e.printStackTrace();
-            throw e;
+            throw new AuthException(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Failed to send OTP. Please try again later.");
         }
     }
 
@@ -164,10 +176,12 @@ public class AuthService {
     private Claims validateAndParseRefreshToken(String token) {
         try {
             Claims claims = jwt.parse(token);
-            if (!jwt.isRefreshToken(claims)) throw new RuntimeException("Invalid token type");
+            if (!jwt.isRefreshToken(claims)) {
+                throw AuthException.invalidRefresh();
+            }
             return claims;
         } catch (JwtException e) {
-            throw new RuntimeException("Invalid refresh token");
+            throw AuthException.invalidRefresh();
         }
     }
 

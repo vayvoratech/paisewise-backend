@@ -27,4 +27,8 @@ public class AuthException extends RuntimeException {
     public static AuthException invalidRefresh() {
         return new AuthException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH", "Refresh token is invalid or expired.");
     }
+
+    public static AuthException userNotFound() {
+        return new AuthException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "No account found with that email.");
+    }
 }

@@ -43,7 +43,13 @@ public class ResourceServerSecurityConfig {
                                 "/swagger-ui.html")
                         .permitAll()
                         // Public auth endpoints (login/register/refresh) live in auth-service.
-                        .requestMatchers("/auth/login", "/auth/register", "/auth/refresh").permitAll()
+                        .requestMatchers(
+                                "/auth/login",
+                                "/auth/register",
+                                "/auth/refresh",
+                                "/auth/forgot-password",
+                                "/auth/verify-otp",
+                                "/auth/reset-password").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);

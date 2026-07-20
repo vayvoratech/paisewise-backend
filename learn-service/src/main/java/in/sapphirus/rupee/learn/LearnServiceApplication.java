@@ -1,4 +1,4 @@
-﻿package in.sapphirus.rupee.learn;
+package in.sapphirus.rupee.learn;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

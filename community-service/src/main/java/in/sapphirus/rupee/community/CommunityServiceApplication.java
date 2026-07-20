@@ -1,4 +1,4 @@
-﻿package in.sapphirus.rupee.community;
+package in.sapphirus.rupee.community;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
