@@ -1,7 +1,6 @@
 package in.sapphirus.rupee.community.domain;
 
 import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,42 +14,68 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    private String authorId;
-    private String author;
-    private String location;
-    private String tag;
-    private String avatarColor;
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
 
-    @Column(length = 2000)
-    private String text;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String body;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, length = 5)
+    private String language = "hi";
+
+    @Column(name = "upvote_count", nullable = false)
+    private int upvoteCount = 0;
+
+    @Column(name = "answer_count", nullable = false)
+    private int answerCount = 0;
+
+    @Column(name = "view_count", nullable = false)
+    private int viewCount = 0;
+
+    @Column(name = "is_answered", nullable = false)
+    private boolean isAnswered = false;
+
+    @Column(name = "is_removed", nullable = false)
+    private boolean isRemoved = false;
+
+    @Column(name = "is_pinned", nullable = false)
+    private boolean isPinned = false;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "post_id")
+    private List<Reply> replies = new ArrayList<>();
+
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("createdAt ASC")
-    private List<Reply> replies = new ArrayList<>();
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt = Instant.now();
 
     protected Post() {}
 
-    public Post(String authorId, String author, String location, String tag, String avatarColor, String text) {
-        this.authorId = authorId;
-        this.author = author;
-        this.location = location;
-        this.tag = tag;
-        this.avatarColor = avatarColor;
-        this.text = text;
+    public Post(UUID userId, String body, String language) {
+        this.userId = userId;
+        this.body = body;
+        this.language = language;
+    }
+
+//    public void addReply(Reply reply) {
+//        this.replies.add(reply);
+//        this.answerCount = this.replies.size();
+//    }
+
+    public void addReply(Reply reply) {
+        this.replies.add(reply);
+        reply.setPost(this); // <-- This sets the foreign key relationship automatically
     }
 
     public UUID getId() { return id; }
-    public String getAuthorId() { return authorId; }
-    public String getAuthor() { return author; }
-    public String getLocation() { return location; }
-    public String getTag() { return tag; }
-    public String getAvatarColor() { return avatarColor; }
-    public String getText() { return text; }
-    public Instant getCreatedAt() { return createdAt; }
+    public UUID getUserId() { return userId; }
+    public String getBody() { return body; }
+    public String getLanguage() { return language; }
+    public int getUpvoteCount() { return upvoteCount; }
+    public int getAnswerCount() { return answerCount; }
+    public boolean isAnswered() { return isAnswered; }
     public List<Reply> getReplies() { return replies; }
-
-    public void addReply(Reply r) { r.setPost(this); replies.add(r); }
+    public Instant getCreatedAt() { return createdAt; }
 }
