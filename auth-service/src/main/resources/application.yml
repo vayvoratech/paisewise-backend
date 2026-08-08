@@ -4,18 +4,23 @@ server:
 spring:
   application:
     name: auth-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/rupee_db}
-    username: ${DB_USER:rupee}
-    password: ${DB_PASSWORD:rupee_local}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/rupee_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:Tony}
     driver-class-name: org.postgresql.Driver
   jpa:
+    show-sql: true
     hibernate:
       ddl-auto: update
     open-in-view: false
     properties:
       hibernate:
-        format_sql: false
+        format_sql: true
         default_schema: auth
         dialect: org.hibernate.dialect.PostgreSQLDialect
   mail:
@@ -55,6 +60,11 @@ management:
       exposure:
         include: health, info
 
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID:ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
+  auth-token: ${TWILIO_AUTH_TOKEN:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
+  from-number: ${TWILIO_FROM_NUMBER:+1234567890}
+
 ---
 # Run with -Dspring.profiles.active=local to use in-memory H2 (no Postgres/Docker needed).
 spring:
@@ -62,12 +72,16 @@ spring:
     activate:
       on-profile: local
   datasource:
-    url: jdbc:h2:mem:auth;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    url: jdbc:h2:mem:auth;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;INIT=CREATE SCHEMA IF NOT EXISTS auth
     username: sa
     password: ""
+    driver-class-name: org.h2.Driver
   jpa:
     hibernate:
       ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
 eureka:
   client:
     enabled: false

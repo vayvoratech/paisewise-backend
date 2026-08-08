@@ -48,4 +48,18 @@ public final class AuthDtos {
             @NotBlank @Email String email,
             @NotBlank @Size(min = 4, max = 100) String newPassword
     ) {}
+
+    public record SendOtpRequest(
+            @NotBlank @Pattern(regexp = "\\d{10}") String phone
+    ) {}
+
+    public record SetMpinRequest(
+            @NotBlank @Email String email,
+            @NotBlank @Size(min = 4, max = 6) String mpin
+    ) {}
+
+    public record MpinLoginRequest(
+            @NotBlank @Pattern(regexp = "\\d{10}") String phone,
+            @NotBlank @Size(min = 4, max = 6) String mpin
+    ) {}
 }

@@ -5,7 +5,6 @@ import in.sapphirus.rupee.auth.domain.OtpEntity;
 import in.sapphirus.rupee.auth.domain.RefreshToken;
 import in.sapphirus.rupee.auth.domain.User;
 import in.sapphirus.rupee.auth.repo.OtpRepository;
-import in.sapphirus.rupee.auth.repo.RefreshTokenRepository;
 import in.sapphirus.rupee.auth.repo.UserRepository;
 import in.sapphirus.rupee.security.JwtProperties;
 import in.sapphirus.rupee.security.JwtService;
@@ -14,6 +13,8 @@ import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.context.ApplicationEventPublisher;
+import in.sapphirus.rupee.auth.event.AuditSecurityEvent;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,23 +32,28 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository users;
-    private final RefreshTokenRepository refreshTokens;
+    private final RefreshTokenService refreshTokenService;
     private final OtpRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwt;
     private final JwtProperties jwtProps;
     private final JavaMailSender mailSender;
+    private final OtpService otpService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AuthService(UserRepository users, RefreshTokenRepository refreshTokens,
+    public AuthService(UserRepository users, RefreshTokenService refreshTokenService,
                        OtpRepository otpRepository, PasswordEncoder passwordEncoder,
-                       JwtService jwt, JwtProperties jwtProps, JavaMailSender mailSender) {
+                       JwtService jwt, JwtProperties jwtProps, JavaMailSender mailSender,
+                       OtpService otpService, ApplicationEventPublisher eventPublisher) {
         this.users = users;
-        this.refreshTokens = refreshTokens;
+        this.refreshTokenService = refreshTokenService;
         this.otpRepository = otpRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwt = jwt;
         this.jwtProps = jwtProps;
         this.mailSender = mailSender;
+        this.otpService = otpService;
+        this.eventPublisher = eventPublisher;
     }
 
     // --- CORE AUTHENTICATION ---
@@ -66,15 +72,26 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest req) {
-        User user = users.findByPhone(req.phone())
-                .orElseThrow(AuthException::invalidCredentials);
+        try {
+            User user = users.findByPhone(req.phone())
+                    .orElseThrow(() -> {
+                        publishEvent(null, "LOGIN", "FAILURE", "USER_NOT_FOUND");
+                        return AuthException.invalidCredentials();
+                    });
 
-        if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
-            // Same message as "user not found" above so we don't leak which part
-            // of the credentials was wrong.
-            throw AuthException.invalidCredentials();
+            if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
+                publishEvent(user.getId(), "LOGIN", "FAILURE", "WRONG_PASSWORD");
+                throw AuthException.invalidCredentials();
+            }
+            AuthResponse response = issueFor(user);
+            publishEvent(user.getId(), "LOGIN", "SUCCESS", null);
+            return response;
+        } catch (Exception e) {
+            if (!(e instanceof AuthException)) {
+                publishEvent(null, "LOGIN", "FAILURE", e.getMessage());
+            }
+            throw e;
         }
-        return issueFor(user);
     }
 
     @Transactional
@@ -82,14 +99,14 @@ public class AuthService {
         Claims claims = validateAndParseRefreshToken(presentedRefreshToken);
         String hash = sha256(presentedRefreshToken);
 
-        RefreshToken stored = refreshTokens.findByTokenHash(hash)
+        RefreshToken stored = refreshTokenService.findByTokenHash(hash)
                 .orElseThrow(AuthException::invalidRefresh);
 
-        if (!stored.isActive()) {
+        if (!refreshTokenService.validateToken(stored)) {
             throw AuthException.invalidRefresh();
         }
 
-        stored.revoke();
+        refreshTokenService.revokeRefreshToken(stored);
         return mintTokens(UUID.fromString(claims.getSubject()), claims.get("phone", String.class));
     }
 
@@ -97,47 +114,42 @@ public class AuthService {
 
     @Transactional
     public void forgotPassword(String email) {
+        User user = users.findByEmail(email)
+                .orElseThrow(() -> {
+                    publishEvent(null, "OTP_SENT", "FAILURE", "USER_NOT_FOUND");
+                    return AuthException.userNotFound();
+                });
         try {
-            System.out.println("DEBUG: Looking for email: " + email);
-
-            users.findByEmail(email).ifPresentOrElse(user -> {
-                System.out.println("DEBUG: User found, generating OTP...");
-
-                // --- YOUR ORIGINAL LOGIC IS HERE ---
-                otpRepository.deleteByEmail(email);
-                String code = String.format("%06d", new Random().nextInt(999999));
-
-                OtpEntity otp = new OtpEntity();
-                otp.setEmail(email);
-                otp.setOtp(passwordEncoder.encode(code));
-                otp.setExpiresAt(LocalDateTime.now().plusMinutes(5));
-                otpRepository.save(otp);
-
-                sendOtpEmail(email, code);
-                System.out.println("DEBUG: Email sent successfully.");
-                // -----------------------------------
-
-            }, () -> {
-                System.out.println("DEBUG: User not found in DB.");
-                throw AuthException.userNotFound();
-            });
-
-        } catch (AuthException e) {
-            // Expected, already-mapped error (e.g. user not found) — just rethrow
-            throw e;
+            otpService.sendOtp(user.getPhone());
+            publishEvent(user.getId(), "OTP_SENT", "SUCCESS", null);
         } catch (Exception e) {
-            System.err.println("CRITICAL ERROR in forgotPassword: " + e.getMessage());
-            e.printStackTrace();
-            throw new AuthException(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Failed to send OTP. Please try again later.");
+            publishEvent(user.getId(), "OTP_SENT", "FAILURE", e.getMessage());
+            throw e;
         }
     }
 
     public boolean verifyOtp(String email, String otp) {
-        return otpRepository.findByEmail(email)
-                .map(o -> !o.isVerified() &&
-                        o.getExpiresAt().isAfter(LocalDateTime.now()) &&
-                        passwordEncoder.matches(otp, o.getOtp()))
-                .orElse(false);
+        User user = users.findByEmail(email).orElse(null);
+        if (user == null) {
+            publishEvent(null, "OTP_VERIFIED", "FAILURE", "USER_NOT_FOUND");
+            return false;
+        }
+        try {
+            boolean isValid = otpService.verifyOtp(user.getPhone(), otp);
+            if (isValid) {
+                publishEvent(user.getId(), "OTP_VERIFIED", "SUCCESS", null);
+            } else {
+                publishEvent(user.getId(), "OTP_VERIFIED", "FAILURE", "INVALID_OTP");
+            }
+            return isValid;
+        } catch (IllegalStateException e) {
+            if (e.getMessage() != null && e.getMessage().contains("locked")) {
+                publishEvent(user.getId(), "ACCOUNT_LOCKED", "SUCCESS", "TOO_MANY_FAILED_ATTEMPTS");
+            } else {
+                publishEvent(user.getId(), "OTP_VERIFIED", "FAILURE", e.getMessage());
+            }
+            throw e;
+        }
     }
 
     @Transactional
@@ -145,7 +157,73 @@ public class AuthService {
         users.findByEmail(email).ifPresent(user -> {
             user.setPassword(passwordEncoder.encode(newPassword));
             users.save(user);
-            otpRepository.deleteByEmail(email);
+        });
+    }
+
+    public void sendOtpForPhone(String phone) {
+        User user = users.findByPhone(phone).orElse(null);
+        UUID userId = user != null ? user.getId() : null;
+        try {
+            otpService.sendOtp(phone);
+            publishEvent(userId, "OTP_SENT", "SUCCESS", null);
+        } catch (Exception e) {
+            publishEvent(userId, "OTP_SENT", "FAILURE", e.getMessage());
+            throw e;
+        }
+    }
+
+    @Transactional
+    public void setMpin(String email, String mpin) {
+        User user = users.findByEmail(email)
+                .orElseThrow(() -> {
+                    publishEvent(null, "MPIN_SET", "FAILURE", "USER_NOT_FOUND");
+                    return AuthException.userNotFound();
+                });
+        try {
+            String action = (user.getMpinHash() == null) ? "MPIN_SET" : "MPIN_CHANGED";
+            user.setMpinHash(passwordEncoder.encode(mpin));
+            users.save(user);
+            publishEvent(user.getId(), action, "SUCCESS", null);
+        } catch (Exception e) {
+            publishEvent(user.getId(), "MPIN_SET", "FAILURE", e.getMessage());
+            throw e;
+        }
+    }
+
+    @Transactional
+    public AuthResponse loginWithMpin(MpinLoginRequest req) {
+        try {
+            otpService.checkMpinLockout(req.phone());
+        } catch (IllegalStateException e) {
+            throw new AuthException(HttpStatus.UNAUTHORIZED, "ACCOUNT_LOCKED", e.getMessage());
+        }
+
+        User user = users.findByPhone(req.phone())
+                .orElseThrow(AuthException::invalidCredentials);
+
+        if (user.getMpinHash() == null || !passwordEncoder.matches(req.mpin(), user.getMpinHash())) {
+            try {
+                otpService.trackMpinFailure(req.phone());
+            } catch (IllegalStateException e) {
+                publishEvent(user.getId(), "ACCOUNT_LOCKED", "SUCCESS", "TOO_MANY_FAILED_MPIN_ATTEMPTS");
+                throw new AuthException(HttpStatus.UNAUTHORIZED, "ACCOUNT_LOCKED", e.getMessage());
+            }
+            publishEvent(user.getId(), "LOGIN", "FAILURE", "WRONG_MPIN");
+            throw AuthException.invalidCredentials();
+        }
+
+        otpService.resetMpinAttempts(req.phone());
+        AuthResponse response = issueFor(user);
+        publishEvent(user.getId(), "LOGIN", "SUCCESS", null);
+        return response;
+    }
+
+    @Transactional
+    public void logout(String presentedRefreshToken) {
+        String hash = sha256(presentedRefreshToken);
+        refreshTokenService.findByTokenHash(hash).ifPresent(stored -> {
+            refreshTokenService.revokeRefreshToken(stored);
+            publishEvent(stored.getUserId(), "LOGOUT", "SUCCESS", null);
         });
     }
 
@@ -161,7 +239,7 @@ public class AuthService {
         String access = jwt.issueAccessToken(userId.toString(), phone, Map.of());
         String refresh = jwt.issueRefreshToken(userId.toString(), phone);
         Instant expiry = Instant.now().plusMillis(jwtProps.getRefreshTokenTtlMs());
-        refreshTokens.save(new RefreshToken(userId, sha256(refresh), expiry));
+        refreshTokenService.createToken(userId, sha256(refresh), expiry);
         return new Tokens(access, refresh);
     }
 
@@ -191,6 +269,32 @@ public class AuthService {
             return HexFormat.of().formatHex(md.digest(value.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
+    private String getClientIp() {
+        try {
+            var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servletAttributes) {
+                var request = servletAttributes.getRequest();
+                String xff = request.getHeader("X-Forwarded-For");
+                if (xff != null && !xff.isBlank()) {
+                    return xff.split(",")[0].trim();
+                }
+                return request.getRemoteAddr();
+            }
+        } catch (Exception e) {
+            // fallback
+        }
+        return "127.0.0.1";
+    }
+
+    private void publishEvent(UUID userId, String action, String result, String failureReason) {
+        try {
+            String ip = getClientIp();
+            eventPublisher.publishEvent(new AuditSecurityEvent(userId, action, result, failureReason, ip));
+        } catch (Exception e) {
+            // log fallback
         }
     }
 }

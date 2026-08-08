@@ -1,13 +1,13 @@
-﻿server:
+server:
   port: 8084
 
 spring:
   application:
     name: practice-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5436/practice}
-    username: ${DB_USER:rupee}
-    password: ${DB_PASSWORD:rupee_local}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/practice}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:Tony}
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,6 +17,9 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: false
+    hostname: localhost
 
 rupee:
   jwt:
