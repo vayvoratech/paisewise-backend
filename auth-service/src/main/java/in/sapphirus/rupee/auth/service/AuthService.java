@@ -103,7 +103,6 @@ public class AuthService {
             users.findByEmail(email).ifPresentOrElse(user -> {
                 System.out.println("DEBUG: User found, generating OTP...");
 
-                // --- YOUR ORIGINAL LOGIC IS HERE ---
                 otpRepository.deleteByEmail(email);
                 String code = String.format("%06d", new Random().nextInt(999999));
 
@@ -115,7 +114,6 @@ public class AuthService {
 
                 sendOtpEmail(email, code);
                 System.out.println("DEBUG: Email sent successfully.");
-                // -----------------------------------
 
             }, () -> {
                 System.out.println("DEBUG: User not found in DB.");
@@ -123,7 +121,6 @@ public class AuthService {
             });
 
         } catch (AuthException e) {
-            // Expected, already-mapped error (e.g. user not found) — just rethrow
             throw e;
         } catch (Exception e) {
             System.err.println("CRITICAL ERROR in forgotPassword: " + e.getMessage());

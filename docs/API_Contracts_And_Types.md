@@ -2,14 +2,14 @@
 
 ## 1. Auth Service (`/auth`)
 ```typescript
-interface RegisterRequest { email: string; password: string; }
-interface LoginRequest { email: string; password: string; }
+interface RegisterRequest { name: string; phone: string; email: string; password: string; confirmPassword: String; }
+interface LoginRequest { phione: string; password: string; }
 interface RefreshRequest { refreshToken: string; }
 interface AuthResponse { token: string; refreshToken: string; }
 interface Tokens { accessToken: string; refreshToken: string; }
 interface ForgotPasswordRequest { email: string; }
 interface VerifyOtpRequest { email: string; otp: string; }
-interface ResetPasswordRequest { email: string; newPassword: string; }
+interface ResetPasswordRequest { newPassword: string; confirmPassword: String; }
 
 2. Learn Service (/learn)
 interface LessonView {

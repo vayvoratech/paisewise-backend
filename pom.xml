@@ -24,6 +24,7 @@
     </properties>
 
     <modules>
+        <module>paisewise-common</module>
         <module>common-security</module>
         <module>discovery-server</module>
         <module>api-gateway</module>

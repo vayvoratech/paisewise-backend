@@ -21,7 +21,7 @@ class AuthServiceTest {
 
     @Test
     void register_then_login_then_refresh() {
-        var reg = authService.register(new RegisterRequest("9876543210", "Rahul", "secret1"));
+        var reg = authService.register(new RegisterRequest("9876543210", "Rahul", "secret1", "rahul@example.com", "USER"));
         assertThat(reg.user().name()).isEqualTo("Rahul");
         assertThat(reg.tokens().accessToken()).isNotBlank();
         assertThat(reg.tokens().refreshToken()).isNotBlank();
@@ -36,14 +36,14 @@ class AuthServiceTest {
 
     @Test
     void login_with_wrong_password_fails() {
-        authService.register(new RegisterRequest("9000000001", "Test", "rightpass"));
+        authService.register(new RegisterRequest("9000000001", "Test", "rightpass", "test1@example.com", "USER"));
         assertThatThrownBy(() -> authService.login(new LoginRequest("9000000001", "wrongpass")))
                 .isInstanceOf(AuthException.class);
     }
 
     @Test
     void rotated_refresh_token_cannot_be_reused() {
-        var reg = authService.register(new RegisterRequest("9000000002", "Test", "rightpass"));
+        var reg = authService.register(new RegisterRequest("9000000002", "Test", "rightpass", "test2@example.com", "USER"));
         String original = reg.tokens().refreshToken();
         authService.refresh(original); // rotates → original now revoked
         assertThatThrownBy(() -> authService.refresh(original))
