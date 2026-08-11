@@ -73,7 +73,8 @@ public class AuthService {
     @Transactional
     public AuthResponse login(LoginRequest req) {
         try {
-            User user = users.findByPhone(req.phone())
+            User user = users.findByPhone(req.identifier())
+                    .or(() -> users.findByEmail(req.identifier()))
                     .orElseThrow(() -> {
                         publishEvent(null, "LOGIN", "FAILURE", "USER_NOT_FOUND");
                         return AuthException.invalidCredentials();

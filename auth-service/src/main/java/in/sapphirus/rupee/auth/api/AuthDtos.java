@@ -22,7 +22,7 @@ public final class AuthDtos {
     ) {}
 
     public record LoginRequest(
-            @NotBlank String phone,
+            @NotBlank String identifier,
             @NotBlank String password) {}
 
     public record RefreshRequest(@NotBlank String refreshToken) {}
