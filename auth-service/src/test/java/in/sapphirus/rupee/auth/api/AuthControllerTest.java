@@ -70,7 +70,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phone\":\"9876543210\",\"password\":\"secret1\"}"))
+                        .content("{\"identifier\":\"9876543210\",\"password\":\"secret1\"}"))
                 .andExpect(status().isOk());
 
         verify(authService, times(1)).login(any(LoginRequest.class));
@@ -80,7 +80,7 @@ class AuthControllerTest {
     void login_missingPhone_returnsBadRequest() throws Exception {
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"phone\":\"\",\"password\":\"secret1\"}"))
+                        .content("{\"identifier\":\"\",\"password\":\"secret1\"}"))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(authService);
