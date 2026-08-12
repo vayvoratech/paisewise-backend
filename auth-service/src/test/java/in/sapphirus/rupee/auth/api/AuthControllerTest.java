@@ -40,7 +40,7 @@ class AuthControllerTest {
 
     @Test
     void register_validRequest_returnsCreated() throws Exception {
-        UserView userView = new UserView(UUID.randomUUID().toString(), "Rahul", "9876543210");
+        UserView userView = new UserView(UUID.randomUUID().toString(), "Rahul", "9876543210", "rahul@example.com", false);
         Tokens tokens = new Tokens("accessToken", "refreshToken");
         when(authService.register(any(RegisterRequest.class))).thenReturn(new AuthResponse(userView, tokens));
 
@@ -64,7 +64,7 @@ class AuthControllerTest {
 
     @Test
     void login_validRequest_returnsOk() throws Exception {
-        UserView userView = new UserView(UUID.randomUUID().toString(), "Rahul", "9876543210");
+        UserView userView = new UserView(UUID.randomUUID().toString(), "Rahul", "9876543210", "rahul@example.com", false);
         Tokens tokens = new Tokens("accessToken", "refreshToken");
         when(authService.login(any(LoginRequest.class))).thenReturn(new AuthResponse(userView, tokens));
 

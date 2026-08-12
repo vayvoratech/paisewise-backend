@@ -232,7 +232,7 @@ public class AuthService {
 
     private AuthResponse issueFor(User user) {
         Tokens tokens = mintTokens(user.getId(), user.getPhone());
-        UserView view = new UserView(user.getId().toString(), user.getName(), user.getPhone());
+        UserView view = new UserView(user.getId().toString(), user.getName(), user.getPhone(), user.getEmail(), user.getMpinHash() != null);
         return new AuthResponse(view, tokens);
     }
 

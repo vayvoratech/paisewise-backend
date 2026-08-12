@@ -27,7 +27,7 @@ public final class AuthDtos {
 
     public record RefreshRequest(@NotBlank String refreshToken) {}
 
-    public record UserView(String id, String name, String phone) {}
+    public record UserView(String id, String name, String phone, String email, boolean hasMpin) {}
 
     public record Tokens(String accessToken, String refreshToken) {}
 

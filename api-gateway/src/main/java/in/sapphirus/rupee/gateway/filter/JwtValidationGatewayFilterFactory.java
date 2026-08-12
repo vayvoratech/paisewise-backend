@@ -46,7 +46,9 @@ public class JwtValidationGatewayFilterFactory extends AbstractGatewayFilterFact
             // Allow public auth endpoints without token check
             if (path.startsWith("/auth/login") || path.startsWith("/auth/register") 
                     || path.startsWith("/auth/verify-otp") || path.startsWith("/auth/forgot-password") 
-                    || path.startsWith("/auth/reset-password")) {
+                    || path.startsWith("/auth/reset-password") || path.startsWith("/auth/send-otp")
+                    || path.startsWith("/auth/refresh") || path.startsWith("/auth/refresh-token")
+                    || path.startsWith("/auth/logout") || path.startsWith("/auth/set-mpin")) {
                 return chain.filter(exchange);
             }
 
