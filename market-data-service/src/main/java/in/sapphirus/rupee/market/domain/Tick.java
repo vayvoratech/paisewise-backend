@@ -64,7 +64,7 @@ public class Tick {
     @Column(name = "change_pct")
     private Double changePct;
 
-    protected Tick() {}
+    public Tick() {}
 
     public Tick(Instant time, String symbol, Double ltp) {
         this.time = time;
@@ -101,5 +101,18 @@ public class Tick {
     public void setHigh(Double high) { this.high = high; }
     public void setLow(Double low) { this.low = low; }
     public void setClose(Double close) { this.close = close; }
+    public void setPrevClose(Double prevClose) { this.prevClose = prevClose; }
     public void setVolume(Long volume) { this.volume = volume; }
+    public void setAvgPrice(Double avgPrice) { this.avgPrice = avgPrice; }
+    public void setUpperCircuit(Double upperCircuit) { this.upperCircuit = upperCircuit; }
+    public void setLowerCircuit(Double lowerCircuit) { this.lowerCircuit = lowerCircuit; }
+    public void setOi(Long oi) { this.oi = oi; }
+    public void setOiDayHigh(Long oiDayHigh) { this.oiDayHigh = oiDayHigh; }
+    public void setOiDayLow(Long oiDayLow) { this.oiDayLow = oiDayLow; }
+    public void setBidPrice(Double bidPrice) { this.bidPrice = bidPrice; }
+    public void setAskPrice(Double askPrice) { this.askPrice = askPrice; }
+    public void setBidQty(Integer bidQty) { this.bidQty = bidQty; }
+    public void setAskQty(Integer askQty) { this.askQty = askQty; }
+    public void setChangeAbs(Double changeAbs) { this.changeAbs = changeAbs; }
+    public void setChangePct(Double changePct) { this.changePct = changePct; }
 }

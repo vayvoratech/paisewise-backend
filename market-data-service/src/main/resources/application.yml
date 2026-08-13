@@ -16,6 +16,17 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+fyers:
+  websocket:
+    url: ${FYERS_WS_URL:ws://localhost:8087/mock/fyers}
+    access-token: ${FYERS_ACCESS_TOKEN:mock-token}
+
 
 eureka:
   client:
