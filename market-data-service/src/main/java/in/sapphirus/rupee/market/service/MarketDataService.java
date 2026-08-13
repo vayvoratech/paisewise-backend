@@ -223,4 +223,12 @@ public class MarketDataService {
 
         return indices;
     }
+
+    public Symbol getSymbol(String symbol) {
+        Optional<Symbol> symOpt = symbolRepository.findById(symbol);
+        if (symOpt.isEmpty() && !symbol.contains(":")) {
+            symOpt = symbolRepository.findById("NSE:" + symbol);
+        }
+        return symOpt.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Symbol not found: " + symbol));
+    }
 }
