@@ -136,6 +136,26 @@ spring:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
                 methods: GET
+        - id: market-data-service
+          uri: lb://market-data-service
+          predicates:
+            - Path=/market/**
+          filters:
+            - name: JwtValidation
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                key-resolver: "#{@userKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: marketDataCB
+                fallbackUri: forward:/fallback/market
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
+                methods: GET
       # CORS so the Expo web/mobile client can call the gateway.
       globalcors:
         cors-configurations:
@@ -159,3 +179,8 @@ management:
     web:
       exposure:
         include: health, info, gateway
+
+rupee:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-only-change-me-to-a-strong-256-bit-secret-value!!}
+    issuer: rupee-auth

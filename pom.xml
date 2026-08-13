@@ -33,6 +33,7 @@
         <module>practice-service</module>
         <module>portfolio-service</module>
         <module>community-service</module>
+        <module>market-data-service</module>
     </modules>
 
     <dependencyManagement>
