@@ -5,6 +5,7 @@ import in.sapphirus.rupee.market.dto.CandleDto;
 import in.sapphirus.rupee.market.dto.IndexQuoteDto;
 import in.sapphirus.rupee.market.dto.StockQuoteDto;
 import in.sapphirus.rupee.market.service.MarketDataService;
+import in.sapphirus.rupee.market.service.SymbolSyncJob;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,8 +19,11 @@ public class MarketController {
 
     private final MarketDataService marketDataService;
 
-    public MarketController(MarketDataService marketDataService) {
+    private final SymbolSyncJob symbolSyncJob;
+
+    public MarketController(MarketDataService marketDataService, SymbolSyncJob symbolSyncJob) {
         this.marketDataService = marketDataService;
+        this.symbolSyncJob = symbolSyncJob;
     }
 
     @GetMapping("/quote")
@@ -54,5 +58,15 @@ public class MarketController {
     @GetMapping("/symbol/{symbol}")
     public ResponseEntity<Symbol> getSymbol(@PathVariable String symbol) {
         return ResponseEntity.ok(marketDataService.getSymbol(symbol));
+    }
+
+    @PostMapping("/sync-symbols-now")
+    public ResponseEntity<String> syncSymbolsNow() {
+        try {
+            int count = symbolSyncJob.syncSymbolsNow();
+            return ResponseEntity.ok("Successfully synced " + count + " symbols from NSE CSV.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error syncing symbols: " + e.getMessage());
+        }
     }
 }
