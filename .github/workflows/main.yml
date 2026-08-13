@@ -1,12 +1,48 @@
 name: CI Pipeline
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
+
+      # Step 4 - Trigger Pipeline
       - name: Run CI Pipeline
         run: echo "PaiseWise Backend CI pipeline triggered successfully"
+
+      # Step 5 - Checkout Source Code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 6 - Dependency Installation
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Install dependencies
+        run: mvn dependency:resolve
+
+      # Step 7 - Static Code Analysis
+      - name: Static Code Analysis
+        run: mvn checkstyle:check
+
+      # Step 8 - Compile / Build
+      - name: Build application
+        run: mvn clean package -DskipTests
+
+      # Step 9 - Unit Testing
+      - name: Run Unit Tests
+        run: mvn test
+
+      # Step 10 - Security & Vulnerability Scan
+      - name: Security Scan
+        run: mvn org.owasp:dependency-check-maven:check
