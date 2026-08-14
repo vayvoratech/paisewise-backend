@@ -18,13 +18,7 @@ jobs:
 # Step 5 - Checkout Source Code
       - name: Checkout code
         uses: actions/checkout@v4
-      
-       name: Verify pom.xml
-        run: |
-          pwd
-          ls -la
-          find . -name pom.xml -print
-         
+        
         # Step 6 - Dependency Installation
       - name: Setup Java
         uses: actions/setup-java@v4
