@@ -1,1 +1,5 @@
-
+name: Verify pom.xml
+        run: |
+          pwd
+          ls -la
+          find . -name pom.xml -print
