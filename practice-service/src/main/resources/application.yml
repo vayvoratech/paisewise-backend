@@ -4,13 +4,19 @@ server:
 spring:
   application:
     name: practice-service
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: practice-alerts-group
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/practice}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/practice?stringtype=unspecified}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:Tony}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     open-in-view: false
 
 eureka:
