@@ -18,5 +18,14 @@ jobs:
 # Step 5 - Checkout Source Code
       - name: Checkout code
         uses: actions/checkout@v4
+        # Step 6 - Dependency Installation
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      - name: Install dependencies
+        run: mvn dependency:resolve
       
       
