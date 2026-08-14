@@ -1,0 +1,5 @@
+      - name: Verify Project Structure
+        run: |
+          pwd
+          ls -la
+          find . -name "pom.xml" -print
