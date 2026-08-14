@@ -27,5 +27,10 @@ jobs:
           cache: maven
       - name: Install dependencies
         run: mvn dependency:resolve
+        - name: Check repository contents
+  run: |
+    pwd
+    ls -la
+    find . -name pom.xml -print
       
       
