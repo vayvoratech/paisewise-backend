@@ -18,3 +18,6 @@ jobs:
 # Step 5 - Checkout Source Code
       - name: Checkout code
         uses: actions/checkout@v4
+           # Step 7 - Static Code Analysis
+      - name: Static Code Analysis
+        run: mvn checkstyle:check
