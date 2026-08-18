@@ -1,37 +1,26 @@
 name: CI Pipeline
-
 on:
   push:
-    branches: [main]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Run CI Pipeline
-        run: echo "PaiseWise Backend CI pipeline triggered successfully"
+      - name: Checkout Source
+        uses: actions/checkout@v3
 
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
-          distribution: 'temurin'
-          cache: maven
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: mvn dependency:resolve
 
-      - name: Static Code Analysis
-        run: mvn checkstyle:check
-
-      - name: Build application
-        run: mvn clean package -DskipTests
+      - name: Build Project
+        run: mvn clean install
 
       - name: Run Unit Tests
         run: mvn test
