@@ -7,6 +7,7 @@ import in.sapphirus.rupee.market.domain.Tick;
 import in.sapphirus.rupee.market.dto.CandleDto;
 import in.sapphirus.rupee.market.dto.IndexQuoteDto;
 import in.sapphirus.rupee.market.dto.StockQuoteDto;
+import in.sapphirus.rupee.market.dto.TopMoversDto;
 import in.sapphirus.rupee.market.repo.SymbolRepository;
 import in.sapphirus.rupee.market.repo.TickRepository;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -230,5 +231,55 @@ public class MarketDataService {
             symOpt = symbolRepository.findById("NSE:" + symbol);
         }
         return symOpt.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Symbol not found: " + symbol));
+    }
+
+    public TopMoversDto calculateTopMovers() {
+        List<Tick> latestTicks = tickRepository.findLatestTicksForAllSymbols();
+        List<StockQuoteDto> quotes = new ArrayList<>();
+
+        for (Tick tick : latestTicks) {
+            String symbol = tick.getSymbol();
+            if (symbol.contains("NIFTY") || symbol.contains("SENSEX") || symbol.contains("BANK")) {
+                continue; // Skip index levels
+            }
+            Optional<Symbol> symOpt = symbolRepository.findById(symbol);
+            String companyName = symOpt.map(Symbol::getCompanyName).orElse(symbol);
+            String logoUrl = symOpt.map(Symbol::getLogoUrl).orElse("📈");
+
+            List<Double> trend = tickRepository.findRecentTrend(symbol, 10);
+            if (trend.isEmpty()) {
+                trend = List.of(tick.getLtp());
+            }
+
+            quotes.add(new StockQuoteDto(
+                    symbol,
+                    companyName,
+                    tick.getLtp(),
+                    tick.getChangePct() != null ? tick.getChangePct() : 0.0,
+                    trend,
+                    logoUrl != null && !logoUrl.isBlank() ? logoUrl : "📈"
+            ));
+        }
+
+        // Static Fallback if no ticks have been simulated yet
+        if (quotes.isEmpty()) {
+            quotes.add(new StockQuoteDto("NSE:RELIANCE", "Reliance Industries Ltd.", 2950.0, 1.25, List.of(2950.0), "🛢️"));
+            quotes.add(new StockQuoteDto("NSE:TCS", "Tata Consultancy Services Ltd.", 3800.0, -0.75, List.of(3800.0), "💻"));
+            quotes.add(new StockQuoteDto("NSE:INFY", "Infosys Limited", 1450.0, 0.45, List.of(1450.0), "🖥️"));
+            quotes.add(new StockQuoteDto("NSE:HDFCBANK", "HDFC Bank Limited", 1640.0, -1.15, List.of(1640.0), "🏦"));
+            quotes.add(new StockQuoteDto("NSE:ICICIBANK", "ICICI Bank Limited", 1100.0, 2.10, List.of(1100.0), "💳"));
+        }
+
+        // Sort for Gainers (Highest to Lowest change)
+        List<StockQuoteDto> sortedGainers = new ArrayList<>(quotes);
+        sortedGainers.sort((a, b) -> Double.compare(b.getChangePct(), a.getChangePct()));
+        List<StockQuoteDto> gainers = sortedGainers.stream().limit(5).collect(Collectors.toList());
+
+        // Sort for Losers (Lowest to Highest change)
+        List<StockQuoteDto> sortedLosers = new ArrayList<>(quotes);
+        sortedLosers.sort((a, b) -> Double.compare(a.getChangePct(), b.getChangePct()));
+        List<StockQuoteDto> losers = sortedLosers.stream().limit(5).collect(Collectors.toList());
+
+        return new TopMoversDto(gainers, losers);
     }
 }

@@ -39,4 +39,7 @@ public interface TickRepository extends JpaRepository<Tick, TickId> {
     @Query(value = "SELECT bucket, open, high, low, close, volume FROM candles_1d " +
                    "WHERE symbol = :symbol AND bucket >= :fromTime AND bucket <= :toTime ORDER BY bucket ASC", nativeQuery = true)
     List<Object[]> getCandles1d(@Param("symbol") String symbol, @Param("fromTime") Instant fromTime, @Param("toTime") Instant toTime);
+
+    @Query(value = "SELECT t.* FROM ticks t INNER JOIN (SELECT symbol, MAX(time) AS max_time FROM ticks GROUP BY symbol) tm ON t.symbol = tm.symbol AND t.time = tm.max_time", nativeQuery = true)
+    List<Tick> findLatestTicksForAllSymbols();
 }

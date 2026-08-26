@@ -4,8 +4,13 @@ import in.sapphirus.rupee.market.domain.Symbol;
 import in.sapphirus.rupee.market.dto.CandleDto;
 import in.sapphirus.rupee.market.dto.IndexQuoteDto;
 import in.sapphirus.rupee.market.dto.StockQuoteDto;
+import in.sapphirus.rupee.market.dto.MarketStatusResponse;
+import in.sapphirus.rupee.market.dto.TopMoversDto;
+import in.sapphirus.rupee.market.service.ExchangeHolidayService;
 import in.sapphirus.rupee.market.service.MarketDataService;
 import in.sapphirus.rupee.market.service.SymbolSyncJob;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +23,45 @@ import java.util.List;
 public class MarketController {
 
     private final MarketDataService marketDataService;
-
     private final SymbolSyncJob symbolSyncJob;
+    private final ExchangeHolidayService holidayService;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
-    public MarketController(MarketDataService marketDataService, SymbolSyncJob symbolSyncJob) {
+    public MarketController(MarketDataService marketDataService,
+                            SymbolSyncJob symbolSyncJob,
+                            ExchangeHolidayService holidayService,
+                            StringRedisTemplate redisTemplate,
+                            ObjectMapper objectMapper) {
         this.marketDataService = marketDataService;
         this.symbolSyncJob = symbolSyncJob;
+        this.holidayService = holidayService;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<MarketStatusResponse> getStatus() {
+        boolean open = holidayService.isMarketOpen(Instant.now());
+        String session = open ? "OPEN" : "CLOSED";
+        // NSE normal hours start at 09:15 AM
+        return ResponseEntity.ok(new MarketStatusResponse(open, session, "09:15 AM"));
+    }
+
+    @GetMapping("/top-movers")
+    public ResponseEntity<TopMoversDto> getTopMovers() {
+        try {
+            String cached = redisTemplate.opsForValue().get("market:top-movers");
+            if (cached != null) {
+                return ResponseEntity.ok(objectMapper.readValue(cached, TopMoversDto.class));
+            }
+        } catch (Exception e) {
+            System.err.println("Redis cache read failure for top movers: " + e.getMessage());
+        }
+
+        // DB Fallback
+        TopMoversDto movers = marketDataService.calculateTopMovers();
+        return ResponseEntity.ok(movers);
     }
 
     @GetMapping("/quote")
