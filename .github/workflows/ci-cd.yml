@@ -17,9 +17,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Dependencies
-        run: mvn dependency:resolve
-
       - name: Build Project
         run: mvn clean install
 
