@@ -30,7 +30,8 @@ public class Notification {
     @Column(columnDefinition = "TEXT") // Mapped as String for JSONB fallback
     private String data;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, columnDefinition = "auth.notification_status")
+    @org.hibernate.annotations.JdbcTypeCode(java.sql.Types.OTHER)
     private String status = "PENDING";
 
     @Column(name = "fcm_message_id", length = 100)

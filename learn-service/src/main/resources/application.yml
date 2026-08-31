@@ -4,14 +4,22 @@ server:
 spring:
   application:
     name: learn-service
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/learn}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:Tony}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     open-in-view: false
+    properties:
+      hibernate:
+        default_schema: learn
 
 eureka:
   client:

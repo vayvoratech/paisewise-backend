@@ -20,7 +20,8 @@ public class UserLessonProgress {
     @Column(name = "lesson_id", nullable = false)
     private String lessonId; // Matches Lesson string id e.g. "mf-3"
 
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, columnDefinition = "public.lesson_progress_status")
+    @org.hibernate.annotations.JdbcTypeCode(java.sql.Types.OTHER)
     private String status = "NOT_STARTED";
 
     @Column(name = "current_block_index", nullable = false)

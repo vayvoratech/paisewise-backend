@@ -59,7 +59,7 @@ spring:
         - id: learn-service
           uri: lb://learn-service
           predicates:
-            - Path=/learn/**
+            - Path=/learn/**, /learning/**
           filters:
             - name: JwtValidation
             - name: RequestRateLimiter

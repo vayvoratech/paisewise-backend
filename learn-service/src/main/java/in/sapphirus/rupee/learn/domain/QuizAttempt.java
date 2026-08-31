@@ -25,9 +25,11 @@ public class QuizAttempt {
     private String status = "IN_PROGRESS";
 
     @Column(name = "questions_served", nullable = false, columnDefinition = "JSONB")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String questionsServed = "[]";
 
     @Column(name = "user_answers", nullable = false, columnDefinition = "JSONB")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String userAnswers = "[]";
 
     @Column(name = "total_questions", nullable = false)

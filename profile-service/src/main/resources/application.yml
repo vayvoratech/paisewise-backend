@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: profile-service
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: profile-xp-group
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/profile}
     username: ${DB_USER:postgres}

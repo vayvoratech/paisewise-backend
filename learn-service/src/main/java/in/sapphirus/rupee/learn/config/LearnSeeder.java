@@ -41,7 +41,7 @@ public class LearnSeeder {
             }
 
             if (quiz.count() == 0) {
-                quiz.save(new QuizQuestion("q2", "If NAV goes from ₹40 to ₹44, what is your return?",
+                quiz.save(new QuizQuestion("q2", "mf-3", "B", "If NAV goes from ₹40 to ₹44, what is your return?",
                         25, 50, 1,
                         "[{\"key\":\"A\",\"text\":\"4% return on investment\",\"correct\":false}," +
                         "{\"key\":\"B\",\"text\":\"10% return on investment\",\"correct\":true}," +
