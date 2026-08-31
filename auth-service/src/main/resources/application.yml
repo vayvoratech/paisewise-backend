@@ -8,7 +8,7 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5433/rupee_db}
     username: ${DB_USER:rupee}
     password: ${DB_PASSWORD:rupee_local}
-    driver-class-name: org.postgresql.Driver
+#    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
