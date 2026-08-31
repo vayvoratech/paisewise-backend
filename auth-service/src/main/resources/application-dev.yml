@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: postgresql://neondb_owner:npg_oXVnsfQD8lT0@ep-shy-frost-axq71kgr-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    username:
+    password:
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: kiran.chinna223@gmail.com
+    password: gfgutmnztqybtnzs
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+  instance:
+    hostname: localhost
+
+rupee:
+  jwt:
+    secret: dev-secret-key
