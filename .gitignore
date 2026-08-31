@@ -1,0 +1,25 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Local env / secrets — never commit real secrets
+.env
+*.local
+application-local.yml

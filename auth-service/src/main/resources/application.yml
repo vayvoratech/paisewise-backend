@@ -1,0 +1,45 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+
+  profiles:
+    active: local
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        default_schema: auth
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    schemas: auth
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
+
+eureka:
+  instance:
+    prefer-ip-address: false
+
+rupee:
+  jwt:
+    issuer: rupee-auth
+    access-token-ttl-ms: 900000
+    refresh-token-ttl-ms: 2592000000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
