@@ -24,13 +24,14 @@ class QuizServiceTest {
     private final QuizRepository quizRepo = mock(QuizRepository.class);
     private final QuizAttemptRepository attemptRepo = mock(QuizAttemptRepository.class);
     private final XpService xpService = mock(XpService.class);
+    private final StreakService streakService = mock(StreakService.class);
 
     private QuizService service;
 
     @BeforeEach
     void setUp() {
-        reset(quizRepo, attemptRepo, xpService);
-        service = new QuizService(quizRepo, attemptRepo, xpService);
+        reset(quizRepo, attemptRepo, xpService, streakService);
+        service = new QuizService(quizRepo, attemptRepo, xpService, streakService);
     }
 
     @Test

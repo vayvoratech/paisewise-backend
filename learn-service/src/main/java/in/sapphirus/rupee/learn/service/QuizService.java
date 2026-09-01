@@ -24,12 +24,14 @@ public class QuizService {
     private final QuizRepository quizRepo;
     private final QuizAttemptRepository attemptRepo;
     private final XpService xpService;
+    private final StreakService streakService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public QuizService(QuizRepository quizRepo, QuizAttemptRepository attemptRepo, XpService xpService) {
+    public QuizService(QuizRepository quizRepo, QuizAttemptRepository attemptRepo, XpService xpService, StreakService streakService) {
         this.quizRepo = quizRepo;
         this.attemptRepo = attemptRepo;
         this.xpService = xpService;
+        this.streakService = streakService;
     }
 
     public List<QuizQuestion> getQuizForLesson(String lessonId) {
@@ -119,6 +121,7 @@ public class QuizService {
             // fallback serialization safeguard
         }
 
+        streakService.updateStreak(userId);
         return attemptRepo.save(attempt);
     }
 

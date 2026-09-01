@@ -26,11 +26,13 @@ public class LearnController {
     private final LearnService learnService;
     private final QuizRepository quiz;
     private final QuizService quizService;
+    private final in.sapphirus.rupee.learn.service.StreakService streakService;
 
-    public LearnController(LearnService learnService, QuizRepository quiz, QuizService quizService) {
+    public LearnController(LearnService learnService, QuizRepository quiz, QuizService quizService, in.sapphirus.rupee.learn.service.StreakService streakService) {
         this.learnService = learnService;
         this.quiz = quiz;
         this.quizService = quizService;
+        this.streakService = streakService;
     }
 
     public record LessonView(String id, String chapter, int chapterNo, int index, int total,
@@ -121,6 +123,12 @@ public class LearnController {
     public List<in.sapphirus.rupee.learn.domain.QuizAttempt> getQuizHistory() {
         UUID userId = UUID.fromString(CurrentUser.requireId());
         return quizService.getQuizHistory(userId);
+    }
+
+    @GetMapping("/streak")
+    public in.sapphirus.rupee.learn.service.StreakService.StreakView getStreak() {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        return streakService.getStreak(userId);
     }
 
     private LessonView lessonView(Lesson l) {
