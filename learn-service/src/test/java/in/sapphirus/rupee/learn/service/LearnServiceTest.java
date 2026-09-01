@@ -27,13 +27,14 @@ class LearnServiceTest {
     private final UserLessonProgressRepository progressRepo = mock(UserLessonProgressRepository.class);
     private final JargonRepository jargonRepo = mock(JargonRepository.class);
     private final StreakService streakService = mock(StreakService.class);
+    private final XpService xpService = mock(XpService.class);
 
     private LearnService service;
 
     @BeforeEach
     void setUp() {
-        reset(lessonRepo, progressRepo, jargonRepo, streakService);
-        service = new LearnService(lessonRepo, progressRepo, jargonRepo, streakService);
+        reset(lessonRepo, progressRepo, jargonRepo, streakService, xpService);
+        service = new LearnService(lessonRepo, progressRepo, jargonRepo, streakService, xpService);
     }
 
     @Test

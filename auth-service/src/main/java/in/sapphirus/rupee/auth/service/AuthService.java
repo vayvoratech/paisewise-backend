@@ -64,6 +64,9 @@ public class AuthService {
         if (users.existsByPhone(req.phone())) {
             throw AuthException.phoneTaken();
         }
+        if (req.email() != null && !req.email().isBlank() && users.existsByEmail(req.email())) {
+            throw AuthException.emailTaken();
+        }
 
         User user = new User(req.phone(), req.name(), req.email(), passwordEncoder.encode(req.password()));
         user = users.save(user);

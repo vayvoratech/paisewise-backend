@@ -25,15 +25,18 @@ public class LearnService {
     private final UserLessonProgressRepository progressRepo;
     private final JargonRepository jargonRepo;
     private final StreakService streakService;
+    private final XpService xpService;
 
     public LearnService(LessonRepository lessonRepo,
                         UserLessonProgressRepository progressRepo,
                         JargonRepository jargonRepo,
-                        StreakService streakService) {
+                        StreakService streakService,
+                        XpService xpService) {
         this.lessonRepo = lessonRepo;
         this.progressRepo = progressRepo;
         this.jargonRepo = jargonRepo;
         this.streakService = streakService;
+        this.xpService = xpService;
     }
 
     public List<Lesson> getLessons() {
@@ -63,11 +66,16 @@ public class LearnService {
         UserLessonProgress progress = progressRepo.findByUserIdAndLessonId(userId, lessonId)
                 .orElseGet(() -> new UserLessonProgress(userId, lessonId));
 
+        boolean firstTimeComplete = !"COMPLETED".equalsIgnoreCase(progress.getStatus());
         progress.setStatus("COMPLETED");
         progress.setCompletedAt(Instant.now());
         progress.setLastViewedAt(Instant.now());
         progressRepo.save(progress);
+
         streakService.updateStreak(userId);
+        if (firstTimeComplete) {
+            xpService.awardXp(userId, 50, "LESSON_COMPLETE_" + lessonId);
+        }
     }
 
     public double getLessonProgress(UUID userId) {
