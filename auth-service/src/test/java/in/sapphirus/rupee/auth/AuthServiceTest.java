@@ -43,6 +43,9 @@ class AuthServiceTest {
     @MockBean
     private OtpService otpService;
 
+    @MockBean
+    private org.springframework.mail.javamail.JavaMailSender mailSender;
+
     @Autowired
     private in.sapphirus.rupee.security.JwtService jwtService;
 
@@ -298,5 +301,6 @@ class AuthServiceTest {
         mockMvc.perform(post("/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new RefreshRequest(refreshToken))))
+                .andExpect(status().isUnauthorized());
     }
 }

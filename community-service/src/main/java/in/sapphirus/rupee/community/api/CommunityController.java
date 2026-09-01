@@ -38,6 +38,7 @@ public class CommunityController {
     public record CreatePostRequest(@NotBlank String text, String tag) {}
 
     @GetMapping("/feed")
+    @Transactional(readOnly = true)
     public FeedView feed() {
         return new FeedView(ONLINE_COUNT, posts.findAllByOrderByCreatedAtDesc().stream().map(this::view).toList());
     }

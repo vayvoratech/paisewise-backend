@@ -18,8 +18,8 @@ public class Reply {
     @JsonIgnore
     private Post post;
 
-    @Column(name = "user_id")
-    private String author; // author ID
+    @Column(name = "author")
+    private String author; // author name
 
     @Column(name = "is_verified_helper")
     private boolean verifiedHelper;

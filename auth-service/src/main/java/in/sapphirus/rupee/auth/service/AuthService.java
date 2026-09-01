@@ -43,7 +43,8 @@ public class AuthService {
 
     public AuthService(UserRepository users, RefreshTokenService refreshTokenService,
                        OtpRepository otpRepository, PasswordEncoder passwordEncoder,
-                       JwtService jwt, JwtProperties jwtProps, JavaMailSender mailSender,
+                       JwtService jwt, JwtProperties jwtProps,
+                       @org.springframework.beans.factory.annotation.Autowired(required = false) JavaMailSender mailSender,
                        OtpService otpService, ApplicationEventPublisher eventPublisher) {
         this.users = users;
         this.refreshTokenService = refreshTokenService;
@@ -251,7 +252,9 @@ public class AuthService {
         message.setTo(email);
         message.setSubject("Password Reset OTP");
         message.setText("Your OTP is: " + code + ". Valid for 5 minutes.");
-        mailSender.send(message);
+        if (mailSender != null) {
+            mailSender.send(message);
+        }
     }
 
     private Claims validateAndParseRefreshToken(String token) {

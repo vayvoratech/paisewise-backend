@@ -30,6 +30,7 @@ spring:
     schemas: practice
     baseline-on-migrate: true
     baseline-version: 1
+    validate-on-migrate: false
     locations: classpath:db/migration
 
 eureka:

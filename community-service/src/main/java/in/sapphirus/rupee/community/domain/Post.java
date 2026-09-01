@@ -22,7 +22,7 @@ public class Post {
     private String tag;
     private String avatarColor;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "body", columnDefinition = "TEXT")
     private String text;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -66,6 +66,14 @@ public class Post {
 
     public Post() {}
 
+    public Post(UUID userId, String body, String language) {
+        this.authorId = userId != null ? userId.toString() : null;
+        this.author = "You";
+        this.text = body;
+        this.language = language != null ? language : "hi";
+        this.createdAt = Instant.now();
+    }
+
     public Post(String authorId, String author, String text, String tag) {
         this.authorId = authorId;
         this.author = author;
@@ -76,11 +84,13 @@ public class Post {
 
     public UUID getId() { return id; }
     public String getAuthorId() { return authorId; }
+    public UUID getUserId() { return authorId != null ? UUID.fromString(authorId) : null; }
     public String getAuthor() { return author; }
     public String getLocation() { return location; }
     public String getTag() { return tag; }
     public String getAvatarColor() { return avatarColor; }
     public String getText() { return text; }
+    public String getBody() { return text; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public List<Reply> getReplies() { return replies; }
