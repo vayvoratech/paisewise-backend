@@ -33,8 +33,13 @@ public class ProfileController {
     public record SettingsUpdate(String language, Boolean dailyReminders) {}
 
     @GetMapping("/me")
-    public ProfileView me() {
-        return view(getOrCreate());
+    public ProfileView me(@RequestParam(required = false) String name) {
+        Profile p = getOrCreate();
+        if (name != null && !name.isBlank() && ("Investor".equals(p.getName()) || !name.equalsIgnoreCase(p.getName()))) {
+            p.setName(name);
+            p = profiles.save(p);
+        }
+        return view(p);
     }
 
     @GetMapping("/me/badges")

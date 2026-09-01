@@ -38,5 +38,18 @@ public class XpService {
         } catch (Exception e) {
             log.error("Failed to publish XP award to Kafka", e);
         }
+
+        try {
+            String profileUrl = "http://localhost:8082/profile/internal/xp/award";
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            Map<String, Object> req = new HashMap<>();
+            req.put("userId", userId.toString());
+            req.put("xpAmount", xpAmount);
+            req.put("source", reason);
+            restTemplate.postForObject(profileUrl, req, Void.class);
+            log.info("Directly awarded {} XP to user {} in profile-service", xpAmount, userId);
+        } catch (Exception ex) {
+            log.warn("Direct HTTP call to profile-service internal/xp/award note: {}", ex.getMessage());
+        }
     }
 }
