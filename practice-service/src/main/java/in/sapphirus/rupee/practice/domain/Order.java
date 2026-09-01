@@ -1,10 +1,11 @@
 package in.sapphirus.rupee.practice.domain;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/** A paper-trading order. Practice money only — no real funds. */
+/** A trading order — real or paper (see isPaper). Matches practice.orders (V2 schema). */
 @Entity
 @Table(name = "orders")
 public class Order {
@@ -14,39 +15,42 @@ public class Order {
     private UUID id;
 
     @Column(name = "user_id", nullable = false)
-    private String userId;
+    private UUID userId;
 
-    @Column(name = "client_order_id", unique = true, length = 64)
+    @Column(name = "client_order_id", nullable = false, unique = true, length = 64)
     private String clientOrderId;
 
+    @Column(nullable = false, length = 30)
     private String symbol;
-    
-    @Column(length = 5)
-    private String exchange = "NSE";
 
+    @Column(nullable = false, length = 5)
+    private String exchange = "NSE"; // NSE | BSE
+
+    @Column(name = "side", nullable = false, length = 10)
     private String side; // BUY | SELL
 
-    @Column(name = "quantity")
-    private int shares;
+    @Column(name = "order_type", nullable = false, length = 10)
+    private String orderType; // MARKET | LIMIT | SL | SL-M
 
-    @Column(name = "filled_qty")
+    @Column(name = "product", length = 10)
+    private String product = "CNC"; // CNC | MIS | NRML
+
+    @Column(name = "quantity", nullable = false)
+    private int quantity;
+
+    @Column(name = "filled_qty", nullable = false)
     private int filledQty = 0;
 
-    @Column(name = "price")
-    private double pricePerShare;
+    @Column(name = "price", precision = 12, scale = 2)
+    private BigDecimal price;
 
-    @Column(name = "trigger_price")
-    private Double triggerPrice;
+    @Column(name = "trigger_price", precision = 12, scale = 2)
+    private BigDecimal triggerPrice;
 
-    @Column(name = "avg_price")
-    private Double avgPrice;
+    @Column(name = "avg_price", precision = 12, scale = 4)
+    private BigDecimal avgPrice;
 
-    private double totalAmount;
-
-    @Column(name = "order_type")
-    private String orderType; // MARKET | LIMIT | STOP_LOSS
-
-    @Column(length = 20)
+    @Column(name = "status", nullable = false, length = 20)
     private String status = "COMPLETED";
 
     @Column(name = "broker_order_id", length = 50)
@@ -55,68 +59,89 @@ public class Order {
     @Column(name = "broker_message", columnDefinition = "TEXT")
     private String brokerMessage;
 
-    @Column(name = "is_paper")
+    @Column(name = "is_paper", nullable = false)
     private boolean isPaper = true;
 
-    @Column(length = 5)
-    private String validity = "DAY";
+    @Column(nullable = false, length = 5)
+    private String validity = "DAY"; // DAY | IOC
 
-    private int xpEarned;
+    @Column(name = "xp_earned")
+    private int xpEarned = 0;
 
     @Column(name = "placed_at", nullable = false, updatable = false)
-    private Instant createdAt = Instant.now();
+    private Instant placedAt = Instant.now();
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
-    protected Order() {}
+    public Order() {}
 
-    public Order(String userId, String symbol, String side, int shares, double pricePerShare,
-                 String orderType, int xpEarned) {
+    public Order(UUID userId, String clientOrderId, String symbol, String exchange, String side,
+                 String orderType, String product, int quantity, boolean isPaper) {
         this.userId = userId;
+        this.clientOrderId = clientOrderId != null ? clientOrderId : UUID.randomUUID().toString();
+        this.symbol = symbol;
+        this.exchange = exchange != null ? exchange : "NSE";
+        this.side = side;
+        this.orderType = orderType;
+        this.product = product != null ? product : "CNC";
+        this.quantity = quantity;
+        this.isPaper = isPaper;
+        this.placedAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    public Order(String userIdStr, String symbol, String side, int shares, double pricePerShare, String orderType, int xpEarned) {
+        this.userId = UUID.fromString(userIdStr);
+        this.clientOrderId = UUID.randomUUID().toString();
         this.symbol = symbol;
         this.side = side;
-        this.shares = shares;
-        this.pricePerShare = pricePerShare;
-        this.totalAmount = Math.round(shares * pricePerShare);
-        this.orderType = orderType;
-        this.xpEarned = xpEarned;
-        this.clientOrderId = UUID.randomUUID().toString();
+        this.quantity = shares;
         this.filledQty = shares;
-        this.avgPrice = pricePerShare;
+        this.price = BigDecimal.valueOf(pricePerShare);
+        this.avgPrice = BigDecimal.valueOf(pricePerShare);
+        this.orderType = orderType;
+        this.status = "COMPLETED";
+        this.isPaper = true;
+        this.xpEarned = xpEarned;
+        this.placedAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
     public UUID getId() { return id; }
-    public String getUserId() { return userId; }
+    public UUID getUserId() { return userId; }
     public String getClientOrderId() { return clientOrderId; }
     public String getSymbol() { return symbol; }
     public String getExchange() { return exchange; }
     public String getSide() { return side; }
-    public int getShares() { return shares; }
-    public int getFilledQty() { return filledQty; }
-    public double getPricePerShare() { return pricePerShare; }
-    public Double getTriggerPrice() { return triggerPrice; }
-    public Double getAvgPrice() { return avgPrice; }
-    public double getTotalAmount() { return totalAmount; }
     public String getOrderType() { return orderType; }
+    public String getProduct() { return product; }
+    public int getQuantity() { return quantity; }
+    public int getShares() { return quantity; }
+    public int getFilledQty() { return filledQty; }
+    public BigDecimal getPrice() { return price; }
+    public double getPricePerShare() { return price != null ? price.doubleValue() : 0.0; }
+    public BigDecimal getTriggerPrice() { return triggerPrice; }
+    public BigDecimal getAvgPrice() { return avgPrice; }
     public String getStatus() { return status; }
     public String getBrokerOrderId() { return brokerOrderId; }
     public String getBrokerMessage() { return brokerMessage; }
     public boolean isPaper() { return isPaper; }
     public String getValidity() { return validity; }
     public int getXpEarned() { return xpEarned; }
-    public Instant getCreatedAt() { return createdAt; }
+    public Instant getPlacedAt() { return placedAt; }
+    public Instant getCreatedAt() { return placedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
     public void setClientOrderId(String clientOrderId) { this.clientOrderId = clientOrderId; }
     public void setExchange(String exchange) { this.exchange = exchange; }
-    public void setFilledQty(int qty) { this.filledQty = qty; }
-    public void setTriggerPrice(Double triggerPrice) { this.triggerPrice = triggerPrice; }
-    public void setAvgPrice(Double avgPrice) { this.avgPrice = avgPrice; }
     public void setStatus(String status) { this.status = status; }
+    public void setFilledQty(int filledQty) { this.filledQty = filledQty; }
+    public void setAvgPrice(BigDecimal avgPrice) { this.avgPrice = avgPrice; }
     public void setBrokerOrderId(String brokerOrderId) { this.brokerOrderId = brokerOrderId; }
-    public void setBrokerMessage(String msg) { this.brokerMessage = msg; }
+    public void setBrokerMessage(String brokerMessage) { this.brokerMessage = brokerMessage; }
     public void setPaper(boolean paper) { this.isPaper = paper; }
     public void setValidity(String validity) { this.validity = validity; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
+

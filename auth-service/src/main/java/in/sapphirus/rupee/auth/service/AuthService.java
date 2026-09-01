@@ -123,6 +123,8 @@ public class AuthService {
         try {
             otpService.sendOtp(user.getPhone());
             publishEvent(user.getId(), "OTP_SENT", "SUCCESS", null);
+        } catch (AuthException e) {
+            throw e;
         } catch (Exception e) {
             publishEvent(user.getId(), "OTP_SENT", "FAILURE", e.getMessage());
             throw e;

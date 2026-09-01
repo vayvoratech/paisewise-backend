@@ -45,16 +45,16 @@ public class CommunityController {
     @PostMapping("/posts")
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
-    public PostView create(@org.springframework.web.bind.annotation.RequestBody CreatePostRequest req) {
-        String userId = CurrentUser.requireId();
-        Post post = new Post(userId, "You", "India", req.tag() == null ? "#General" : req.tag(), "#6D5DF6", req.text());
+    public PostView create(@RequestBody CreatePostRequest req) {
+        UUID userUuid = UUID.fromString(CurrentUser.requireId());
+        Post post = new Post(userUuid, req.text(), "hi");
         return view(posts.save(post));
     }
 
     @PostMapping("/posts/{id}/replies")
     @Transactional
     public PostView reply(@PathVariable UUID id,
-                          @org.springframework.web.bind.annotation.RequestBody CreatePostRequest req) {
+                          @RequestBody CreatePostRequest req) {
         Post post = posts.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
         post.addReply(new Reply("You", false, req.text()));
@@ -64,8 +64,8 @@ public class CommunityController {
     private PostView view(Post p) {
         List<ReplyView> replies = p.getReplies().stream()
                 .map(r -> new ReplyView(r.getAuthor(), r.isVerifiedHelper(), r.getText())).toList();
-        return new PostView(p.getId().toString(), p.getAuthor(), p.getLocation(), ago(p.getCreatedAt()),
-                p.getTag(), p.getAvatarColor(), p.getText(), replies);
+        return new PostView(p.getId().toString(), "You", "India", ago(p.getCreatedAt()),
+                "#General", "#6D5DF6", p.getBody(), replies);
     }
 
     private static String ago(Instant t) {

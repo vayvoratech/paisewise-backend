@@ -4,14 +4,14 @@ server:
 spring:
   application:
     name: api-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
-      # Discover services from Eureka and route by path. The mobile app's
-      # per-service base paths (/auth, /profile, ...) map 1:1 to these routes.
       discovery:
         locator:
           enabled: false
@@ -36,6 +36,7 @@ spring:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
                 methods: GET
+
         - id: profile-service
           uri: lb://profile-service
           predicates:
@@ -56,6 +57,7 @@ spring:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
                 methods: GET
+
         - id: learn-service
           uri: lb://learn-service
           predicates:
@@ -76,6 +78,7 @@ spring:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
                 methods: GET
+
         - id: practice-service
           uri: lb://practice-service
           predicates:
@@ -96,6 +99,7 @@ spring:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
                 methods: GET
+
         - id: portfolio-service
           uri: lb://portfolio-service
           predicates:
@@ -116,6 +120,7 @@ spring:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
                 methods: GET
+
         - id: community-service
           uri: lb://community-service
           predicates:
@@ -136,6 +141,7 @@ spring:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
                 methods: GET
+
         - id: market-data-service
           uri: lb://market-data-service
           predicates:
@@ -156,18 +162,23 @@ spring:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
                 methods: GET
-      # CORS so the Expo web/mobile client can call the gateway.
+
       globalcors:
         cors-configurations:
           '[/**]':
+            allowedOrigins:
+              - http://localhost:3000
+              - http://localhost:5173
+              - http://localhost:8080
+              - https://vayvora-paisewise.netlify.app
             allowedOriginPatterns: "*"
             allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
             allowedHeaders: "*"
             allowCredentials: true
-webflux:
-  # Disable default static resource handling to stop the 404 gateway errors
-  resources:
-    add-mappings: false
+
+  webflux:
+    resources:
+      add-mappings: false
 
 eureka:
   client:
@@ -184,3 +195,4 @@ rupee:
   jwt:
     secret: ${JWT_SECRET:local-dev-only-change-me-to-a-strong-256-bit-secret-value!!}
     issuer: rupee-auth
+

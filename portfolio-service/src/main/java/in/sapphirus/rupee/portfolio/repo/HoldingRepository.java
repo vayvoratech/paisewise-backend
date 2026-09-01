@@ -7,5 +7,5 @@ import java.util.List;
 import java.util.UUID;
 
 public interface HoldingRepository extends JpaRepository<Holding, UUID> {
-    List<Holding> findByUserId(String userId);
+    List<Holding> findByUserId(UUID userId);
 }

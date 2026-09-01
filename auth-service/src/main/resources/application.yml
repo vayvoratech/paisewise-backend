@@ -6,8 +6,8 @@ spring:
     name: auth-service
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/rupee_db}
     username: ${DB_USER:postgres}
@@ -15,38 +15,30 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     show-sql: true
+    open-in-view: false
     hibernate:
       ddl-auto: none
-    open-in-view: false
     properties:
       hibernate:
         format_sql: true
         default_schema: auth
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: kiran.chinna223@gmail.com
-    password: gfgutmnztqybtnzs
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-    # Use this to set the "From" display name
-    default-encoding: UTF-8
+
+  flyway:
+    enabled: true
+    schemas: auth
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
 
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
   instance:
-    # Forces the service to register itself using localhost
     prefer-ip-address: false
     hostname: localhost
 
-# JWT — secret MUST be supplied via env in real environments.
 rupee:
   jwt:
     secret: ${JWT_SECRET:local-dev-only-change-me-to-a-strong-256-bit-secret-value!!}
@@ -82,6 +74,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
 eureka:
   client:
     enabled: false
+

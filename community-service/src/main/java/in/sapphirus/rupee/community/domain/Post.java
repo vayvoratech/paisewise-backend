@@ -28,10 +28,12 @@ public class Post {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Column(name = "updated_at")
+    private Instant updatedAt = Instant.now();
+
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Reply> replies = new ArrayList<>();
 
-    // Advanced Columns from community_posts DDL
     @Column(name = "language", length = 5)
     private String language = "en";
 
@@ -62,15 +64,14 @@ public class Post {
     @Column(name = "is_pinned")
     private boolean isPinned = false;
 
-    protected Post() {}
+    public Post() {}
 
-    public Post(String authorId, String author, String location, String tag, String avatarColor, String text) {
+    public Post(String authorId, String author, String text, String tag) {
         this.authorId = authorId;
         this.author = author;
-        this.location = location;
-        this.tag = tag;
-        this.avatarColor = avatarColor;
         this.text = text;
+        this.tag = tag;
+        this.createdAt = Instant.now();
     }
 
     public UUID getId() { return id; }
@@ -81,6 +82,7 @@ public class Post {
     public String getAvatarColor() { return avatarColor; }
     public String getText() { return text; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
     public List<Reply> getReplies() { return replies; }
 
     public String getLanguage() { return language; }
@@ -94,6 +96,12 @@ public class Post {
     public UUID getRemovedBy() { return removedBy; }
     public boolean isPinned() { return isPinned; }
 
+    public void setAuthorId(String authorId) { this.authorId = authorId; }
+    public void setAuthor(String author) { this.author = author; }
+    public void setLocation(String location) { this.location = location; }
+    public void setTag(String tag) { this.tag = tag; }
+    public void setAvatarColor(String avatarColor) { this.avatarColor = avatarColor; }
+    public void setText(String text) { this.text = text; }
     public void setLanguage(String language) { this.language = language; }
     public void setUpvoteCount(int upvoteCount) { this.upvoteCount = upvoteCount; }
     public void setAnswerCount(int answerCount) { this.answerCount = answerCount; }
@@ -111,3 +119,4 @@ public class Post {
         this.answerCount = replies.size();
     }
 }
+
