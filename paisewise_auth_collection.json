@@ -1,0 +1,376 @@
+{
+  "info": {
+    "_postman_id": "8c4187f5-2efc-4de2-ba78-43d9646b38c2",
+    "name": "PaiseWise Auth Service Collection",
+    "description": "Collection testing all Auth Service endpoints including OTP, MPIN login, token rotation, and invalidation rules.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"9000000029\",\n  \"name\": \"Postman Automation\",\n  \"email\": \"postman29@test.com\",\n  \"password\": \"secret123\",\n  \"confirmPassword\": \"secret123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/register",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Send OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"9000000029\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/send-otp",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "send-otp"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verify OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"postman29@test.com\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/verify-otp",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "verify-otp"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Set MPIN",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"postman29@test.com\",\n  \"mpin\": \"8888\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/set-mpin",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "set-mpin"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login with Password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var data = pm.response.json();",
+              "    pm.environment.set(\"bearer_token\", data.tokens.accessToken);",
+              "    pm.environment.set(\"refresh_token\", data.tokens.refreshToken);",
+              "    pm.environment.set(\"token_expiry_timestamp\", Date.now() + 900000); // 15 mins",
+              "    console.log(\"Tokens successfully set in environment.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"9000000029\",\n  \"password\": \"secret123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login with MPIN",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var data = pm.response.json();",
+              "    pm.environment.set(\"bearer_token\", data.tokens.accessToken);",
+              "    pm.environment.set(\"refresh_token\", data.tokens.refreshToken);",
+              "    pm.environment.set(\"token_expiry_timestamp\", Date.now() + 900000); // 15 mins",
+              "    console.log(\"Tokens successfully set via MPIN login.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"9000000029\",\n  \"mpin\": \"8888\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login/mpin",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login",
+            "mpin"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Rotate Refresh Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/refresh",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "refresh"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"postman29@test.com\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/forgot-password",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "forgot-password"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"postman29@test.com\",\n  \"newPassword\": \"newsecret123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/reset-password",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "reset-password"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Logout User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    pm.environment.unset(\"bearer_token\");",
+              "    pm.environment.unset(\"refresh_token\");",
+              "    pm.environment.unset(\"token_expiry_timestamp\");",
+              "    console.log(\"Tokens cleared on logout.\");",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/logout",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request script for dynamic token validation & rotation",
+          "var path = pm.request.url.getPath();",
+          "var isBypassed = false;",
+          "if (path) {",
+          "    var pathStr = path.join('/');",
+          "    if (pathStr.includes('login') || pathStr.includes('register') || pathStr.includes('refresh') || pathStr.includes('logout') || pathStr.includes('send-otp') || pathStr.includes('verify-otp')) {",
+          "        isBypassed = true;",
+          "    }",
+          "}",
+          "",
+          "if (!isBypassed) {",
+          "    var expiry = pm.environment.get(\"token_expiry_timestamp\");",
+          "    if (expiry && Date.now() > expiry) {",
+          "        console.log(\"Access token expired. Refreshing token...\");",
+          "        pm.sendRequest({",
+          "            url: pm.environment.get(\"base_url\") + \"/auth/refresh\",",
+          "            method: \"POST\",",
+          "            header: { \"Content-Type\": \"application/json\" },",
+          "            body: {",
+          "                mode: \"raw\",",
+          "                raw: JSON.stringify({ refreshToken: pm.environment.get(\"refresh_token\") })",
+          "            }",
+          "        }, function (err, res) {",
+          "            if (res.code === 200) {",
+          "                var responseData = res.json();",
+          "                pm.environment.set(\"bearer_token\", responseData.accessToken);",
+          "                pm.environment.set(\"refresh_token\", responseData.refreshToken);",
+          "                pm.environment.set(\"token_expiry_timestamp\", Date.now() + 900000);",
+          "                console.log(\"Tokens successfully rotated in pre-request script.\");",
+          "            } else {",
+          "                console.error(\"Token refresh failed in pre-request script: \" + res.status);",
+          "            }",
+          "        });",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ]
+}

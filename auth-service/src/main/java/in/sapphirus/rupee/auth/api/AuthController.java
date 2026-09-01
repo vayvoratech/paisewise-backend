@@ -29,7 +29,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(req));
     }
 
-    @PostMapping("/refresh")
+    @PostMapping({"/refresh", "/refresh-token"})
     public ResponseEntity<Tokens> refresh(@Valid @RequestBody RefreshRequest req) {
         return ResponseEntity.ok(authService.refresh(req.refreshToken()));
     }
@@ -55,5 +55,30 @@ public class AuthController {
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.email(), request.newPassword());
         return ResponseEntity.ok("Password updated successfully.");
+    }
+
+    // --- MPIN and Logout Endpoints ---
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<String> sendOtp(@Valid @RequestBody SendOtpRequest request) {
+        authService.sendOtpForPhone(request.phone());
+        return ResponseEntity.ok("OTP sent successfully via SMS.");
+    }
+
+    @PostMapping("/set-mpin")
+    public ResponseEntity<String> setMpin(@Valid @RequestBody SetMpinRequest request) {
+        authService.setMpin(request.email(), request.mpin());
+        return ResponseEntity.ok("MPIN configured successfully.");
+    }
+
+    @PostMapping("/login/mpin")
+    public ResponseEntity<AuthResponse> loginMpin(@Valid @RequestBody MpinLoginRequest request) {
+        return ResponseEntity.ok(authService.loginWithMpin(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@Valid @RequestBody RefreshRequest request) {
+        authService.logout(request.refreshToken());
+        return ResponseEntity.ok("Logged out successfully.");
     }
 }

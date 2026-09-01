@@ -16,10 +16,12 @@ public class ProfileController {
 
     private final ProfileRepository profiles;
     private final BadgeRepository badges;
+    private final in.sapphirus.rupee.profile.service.XpService xpService;
 
-    public ProfileController(ProfileRepository profiles, BadgeRepository badges) {
+    public ProfileController(ProfileRepository profiles, BadgeRepository badges, in.sapphirus.rupee.profile.service.XpService xpService) {
         this.profiles = profiles;
         this.badges = badges;
+        this.xpService = xpService;
     }
 
     public record ProfileView(String userId, String name, String handle, String city, int level,
@@ -48,6 +50,13 @@ public class ProfileController {
         if (update.language() != null) p.setLanguage(update.language());
         if (update.dailyReminders() != null) p.setDailyReminders(update.dailyReminders());
         return view(profiles.save(p));
+    }
+
+    public record InternalXpAwardRequest(String userId, int xpAmount, String source) {}
+
+    @PostMapping("/internal/xp/award")
+    public void awardXpInternal(@RequestBody InternalXpAwardRequest req) {
+        xpService.awardXp(java.util.UUID.fromString(req.userId()), req.xpAmount(), req.source());
     }
 
     /** Auto-provision a profile on first access; auth-service owns identity. */

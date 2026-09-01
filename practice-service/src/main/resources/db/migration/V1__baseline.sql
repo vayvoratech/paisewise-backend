@@ -1,8 +1,9 @@
 
 -- V1__baseline.sql  (practice service)
 
+CREATE SCHEMA IF NOT EXISTS practice;
 
-CREATE TABLE practice.orders (
+CREATE TABLE IF NOT EXISTS practice.orders (
                                  id              uuid NOT NULL,
                                  created_at      timestamp(6) with time zone NOT NULL,
                                  order_type      character varying(255),

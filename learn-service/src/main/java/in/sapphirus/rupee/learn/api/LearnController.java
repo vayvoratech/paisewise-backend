@@ -4,31 +4,35 @@ import com.fasterxml.jackson.annotation.JsonRawValue;
 import in.sapphirus.rupee.learn.domain.JargonTerm;
 import in.sapphirus.rupee.learn.domain.Lesson;
 import in.sapphirus.rupee.learn.domain.QuizQuestion;
-import in.sapphirus.rupee.learn.repo.JargonRepository;
-import in.sapphirus.rupee.learn.repo.LessonRepository;
 import in.sapphirus.rupee.learn.repo.QuizRepository;
+import in.sapphirus.rupee.learn.service.LearnService;
+import in.sapphirus.rupee.learn.service.QuizService;
+import in.sapphirus.rupee.security.CurrentUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
-/** Read APIs for lessons, jargon dictionary, and the daily quiz. Routed at /learn/**. */
+/**
+ * Controller exposing lessons, jargon glossary, and progress tracking APIs.
+ * Supports both /learn and /learning gateway route mappings.
+ */
 @RestController
-@RequestMapping("/learn")
+@RequestMapping({"/learn", "/learning"})
 public class LearnController {
 
-    private final LessonRepository lessons;
-    private final JargonRepository jargon;
+    private final LearnService learnService;
     private final QuizRepository quiz;
+    private final QuizService quizService;
 
-    public LearnController(LessonRepository lessons, JargonRepository jargon, QuizRepository quiz) {
-        this.lessons = lessons;
-        this.jargon = jargon;
+    public LearnController(LearnService learnService, QuizRepository quiz, QuizService quizService) {
+        this.learnService = learnService;
         this.quiz = quiz;
+        this.quizService = quizService;
     }
 
-    // segments/jargonWords are emitted as raw JSON (already stored as JSON strings).
     public record LessonView(String id, String chapter, int chapterNo, int index, int total,
                              String title, int quizXp,
                              @JsonRawValue String segments, @JsonRawValue String jargonWords) {}
@@ -38,21 +42,25 @@ public class LearnController {
     public record QuizView(String id, String prompt, int seconds, int xp,
                            @JsonRawValue String options, String explanation) {}
 
+    public record ProgressRequest(String lessonId) {}
+
+    public record ProgressResponse(double progressPercent) {}
+
+    public record QuizSubmitRequest(List<String> answers, int xpReward) {}
+
     @GetMapping("/lessons")
     public List<LessonView> allLessons() {
-        return lessons.findAll().stream().map(this::lessonView).toList();
+        return learnService.getLessons().stream().map(this::lessonView).toList();
     }
 
     @GetMapping("/lessons/{id}")
     public LessonView lesson(@PathVariable String id) {
-        return lessons.findById(id).map(this::lessonView)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lesson not found"));
+        return lessonView(learnService.getLesson(id));
     }
 
     @GetMapping("/jargon/{term}")
     public JargonView jargon(@PathVariable String term) {
-        JargonTerm t = jargon.findById(term)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Term not found"));
+        JargonTerm t = learnService.getJargonTerm(term);
         return new JargonView(t.getTerm(), t.getDefinition(), t.getAnalogy(), t.getExample());
     }
 
@@ -64,8 +72,60 @@ public class LearnController {
                 .toList();
     }
 
+    @PostMapping("/progress")
+    public ProgressResponse updateProgress(@RequestBody ProgressRequest req) {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        learnService.completeLesson(userId, req.lessonId());
+        double percent = learnService.getLessonProgress(userId);
+        return new ProgressResponse(percent);
+    }
+
+    @PostMapping("/complete")
+    public ProgressResponse completeLesson(@RequestBody ProgressRequest req) {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        learnService.completeLesson(userId, req.lessonId());
+        double percent = learnService.getLessonProgress(userId);
+        return new ProgressResponse(percent);
+    }
+
+    @PostMapping("/viewed")
+    public void markLessonViewed(@RequestBody ProgressRequest req) {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        learnService.markLessonViewed(userId, req.lessonId());
+    }
+
+    @GetMapping("/progress")
+    public ProgressResponse getProgress() {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        double percent = learnService.getLessonProgress(userId);
+        return new ProgressResponse(percent);
+    }
+
+    @GetMapping("/lessons/{lessonId}/quiz")
+    public List<QuizView> getLessonQuiz(@PathVariable String lessonId) {
+        return quizService.getQuizForLesson(lessonId).stream()
+                .map(q -> new QuizView(q.getId(), q.getPrompt(), q.getSeconds(), q.getXp(),
+                        q.getOptionsJson(), q.getExplanation()))
+                .toList();
+    }
+
+    @PostMapping("/lessons/{lessonId}/quiz/submit")
+    public in.sapphirus.rupee.learn.domain.QuizAttempt submitLessonQuiz(
+            @PathVariable String lessonId,
+            @RequestBody QuizSubmitRequest req) {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        return quizService.submitQuiz(userId, lessonId, req.answers(), req.xpReward());
+    }
+
+    @GetMapping("/quiz/history")
+    public List<in.sapphirus.rupee.learn.domain.QuizAttempt> getQuizHistory() {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        return quizService.getQuizHistory(userId);
+    }
+
     private LessonView lessonView(Lesson l) {
         return new LessonView(l.getId(), l.getChapter(), l.getChapterNo(), l.getIndex(), l.getTotal(),
                 l.getTitle(), l.getQuizXp(), l.getSegmentsJson(), l.getJargonWordsJson());
     }
 }
+

@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://prod-db-server:5432/rupee_db
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+  mail:
+    host: smtp.office365.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://prod-eureka:8761/eureka/
+
+  instance:
+    hostname: prod-auth-service
+
+rupee:
+  jwt:
+    secret: ${JWT_SECRET}

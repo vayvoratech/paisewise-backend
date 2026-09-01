@@ -23,11 +23,15 @@ UPDATE learn.lessons SET xp_reward = quiz_xp WHERE xp_reward IS NULL;
 -- =====================================================================
 -- TABLE 3: user_lesson_progress
 -- =====================================================================
-CREATE TYPE learn.lesson_progress_status AS ENUM ('NOT_STARTED','IN_PROGRESS','COMPLETED');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'lesson_progress_status' AND n.nspname = 'learn') THEN
+        CREATE TYPE learn.lesson_progress_status AS ENUM ('NOT_STARTED','IN_PROGRESS','COMPLETED');
+    END IF;
+END $$;
 
-CREATE TABLE learn.user_lesson_progress (
+CREATE TABLE IF NOT EXISTS learn.user_lesson_progress (
     id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id                 UUID NOT NULL REFERENCES auth.users(id),        -- Issue 1 fix: schema-qualified
+    user_id                 UUID NOT NULL,
     lesson_id               VARCHAR(255) NOT NULL REFERENCES learn.lessons(id), -- Issue 4 fix: VARCHAR not UUID
     status                  learn.lesson_progress_status NOT NULL DEFAULT 'NOT_STARTED',
     current_block_index     INTEGER NOT NULL DEFAULT 0,
@@ -43,12 +47,12 @@ CREATE TABLE learn.user_lesson_progress (
     CONSTRAINT uq_user_lesson_progress UNIQUE (user_id, lesson_id)
 );
 
-CREATE INDEX idx_user_lesson_progress_user ON learn.user_lesson_progress(user_id, status, last_viewed_at DESC);
-CREATE INDEX idx_user_lesson_progress_completion ON learn.user_lesson_progress(lesson_id, status, time_spent_seconds)
+CREATE INDEX IF NOT EXISTS idx_user_lesson_progress_user ON learn.user_lesson_progress(user_id, status, last_viewed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_lesson_progress_completion ON learn.user_lesson_progress(lesson_id, status, time_spent_seconds)
     WHERE status = 'COMPLETED';
-CREATE INDEX idx_user_lesson_progress_resume ON learn.user_lesson_progress(user_id, last_viewed_at DESC)
+CREATE INDEX IF NOT EXISTS idx_user_lesson_progress_resume ON learn.user_lesson_progress(user_id, last_viewed_at DESC)
     WHERE status = 'IN_PROGRESS';
-CREATE INDEX idx_user_lesson_progress_today ON learn.user_lesson_progress(user_id, completed_at DESC)
+CREATE INDEX IF NOT EXISTS idx_user_lesson_progress_today ON learn.user_lesson_progress(user_id, completed_at DESC)
     WHERE status = 'COMPLETED' AND completed_at IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION learn.award_lesson_completion_xp()
@@ -59,11 +63,6 @@ BEGIN
     IF NEW.status = 'COMPLETED' AND OLD.status != 'COMPLETED' THEN
         SELECT xp_reward INTO lesson_xp_reward FROM learn.lessons WHERE id = NEW.lesson_id;  -- Issue 5 fix
         IF NEW.xp_earned = 0 AND lesson_xp_reward > 0 THEN
-            UPDATE auth.users
-            SET xp_points = xp_points + lesson_xp_reward,
-                level = FLOOR((xp_points + lesson_xp_reward) / 500.0) + 1,
-                updated_at = NOW()
-            WHERE id = NEW.user_id;
             NEW.xp_earned := lesson_xp_reward;
             NEW.completed_at := NOW();
         END IF;
@@ -72,6 +71,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_award_lesson_xp ON learn.user_lesson_progress;
 CREATE TRIGGER trg_award_lesson_xp
     BEFORE UPDATE OF status ON learn.user_lesson_progress
     FOR EACH ROW
@@ -80,21 +80,11 @@ CREATE TRIGGER trg_award_lesson_xp
 CREATE OR REPLACE FUNCTION learn.update_streak_on_lesson_complete()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.status = 'COMPLETED' AND OLD.status != 'COMPLETED' THEN
-        UPDATE auth.users
-        SET last_active_date = CURRENT_DATE,
-            streak_days = CASE
-                WHEN last_active_date = CURRENT_DATE - INTERVAL '1 day' THEN streak_days + 1
-                WHEN last_active_date = CURRENT_DATE THEN streak_days
-                ELSE 1
-            END,
-            updated_at = NOW()
-        WHERE id = NEW.user_id;
-    END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_update_streak_on_lesson ON learn.user_lesson_progress;
 CREATE TRIGGER trg_update_streak_on_lesson
     AFTER UPDATE OF status ON learn.user_lesson_progress
     FOR EACH ROW
@@ -103,11 +93,15 @@ CREATE TRIGGER trg_update_streak_on_lesson
 -- =====================================================================
 -- TABLE 4: quiz_attempts
 -- =====================================================================
-CREATE TYPE learn.quiz_attempt_status AS ENUM ('IN_PROGRESS','PASSED','FAILED','ABANDONED');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'quiz_attempt_status' AND n.nspname = 'learn') THEN
+        CREATE TYPE learn.quiz_attempt_status AS ENUM ('IN_PROGRESS','PASSED','FAILED','ABANDONED');
+    END IF;
+END $$;
 
-CREATE TABLE learn.quiz_attempts (
+CREATE TABLE IF NOT EXISTS learn.quiz_attempts (
     id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id                 UUID NOT NULL REFERENCES auth.users(id),
+    user_id                 UUID NOT NULL,
     lesson_id               VARCHAR(255) NOT NULL REFERENCES learn.lessons(id),
     attempt_number          INTEGER NOT NULL DEFAULT 1,
     status                  learn.quiz_attempt_status NOT NULL DEFAULT 'IN_PROGRESS',
@@ -128,14 +122,16 @@ CREATE TABLE learn.quiz_attempts (
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()   -- Issue 6 fix: added, was missing
 );
 
-CREATE INDEX idx_quiz_attempts_user_lesson ON learn.quiz_attempts(user_id, lesson_id, attempt_number DESC);
-CREATE INDEX idx_quiz_attempts_lesson_analytics ON learn.quiz_attempts(lesson_id, passed, score_pct, created_at DESC)
+ALTER TABLE learn.quiz_attempts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_lesson ON learn.quiz_attempts(user_id, lesson_id, attempt_number DESC);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_lesson_analytics ON learn.quiz_attempts(lesson_id, passed, score_pct, created_at DESC)
     WHERE status IN ('PASSED','FAILED');
-CREATE INDEX idx_quiz_attempts_user_passed ON learn.quiz_attempts(user_id, passed, submitted_at DESC)
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_passed ON learn.quiz_attempts(user_id, passed, submitted_at DESC)
     WHERE passed = true;
-CREATE INDEX idx_quiz_attempts_abandoned ON learn.quiz_attempts(status, started_at DESC)
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_abandoned ON learn.quiz_attempts(status, started_at DESC)
     WHERE status = 'IN_PROGRESS';
-CREATE INDEX idx_quiz_attempts_answers_gin ON learn.quiz_attempts USING gin(user_answers);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_answers_gin ON learn.quiz_attempts USING gin(user_answers);
 
 CREATE OR REPLACE FUNCTION learn.award_quiz_xp()
 RETURNS TRIGGER AS $$
