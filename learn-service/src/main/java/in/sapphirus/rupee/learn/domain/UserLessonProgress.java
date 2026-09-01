@@ -20,9 +20,10 @@ public class UserLessonProgress {
     @Column(name = "lesson_id", nullable = false)
     private String lessonId; // Matches Lesson string id e.g. "mf-3"
 
-    @Column(nullable = false, columnDefinition = "public.lesson_progress_status")
-    @org.hibernate.annotations.JdbcTypeCode(java.sql.Types.OTHER)
-    private String status = "NOT_STARTED";
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "public.lesson_progress_status")
+    @org.hibernate.annotations.JdbcType(org.hibernate.dialect.PostgreSQLEnumJdbcType.class)
+    private LessonProgressStatus status = LessonProgressStatus.NOT_STARTED;
 
     @Column(name = "current_block_index", nullable = false)
     private int currentBlockIndex = 0;
@@ -64,7 +65,7 @@ public class UserLessonProgress {
     public UUID getId() { return id; }
     public UUID getUserId() { return userId; }
     public String getLessonId() { return lessonId; }
-    public String getStatus() { return status; }
+    public String getStatus() { return status != null ? status.name() : "NOT_STARTED"; }
     public int getCurrentBlockIndex() { return currentBlockIndex; }
     public int getTotalBlocks() { return totalBlocks; }
     public double getScrollPositionPct() { return scrollPositionPct; }
@@ -76,7 +77,13 @@ public class UserLessonProgress {
     public Instant getLastViewedAt() { return lastViewedAt; }
     public Instant getStartedAt() { return startedAt; }
 
-    public void setStatus(String status) { this.status = status; }
+    public void setStatus(String status) {
+        try {
+            this.status = LessonProgressStatus.valueOf(status != null ? status.toUpperCase() : "NOT_STARTED");
+        } catch (Exception e) {
+            this.status = LessonProgressStatus.NOT_STARTED;
+        }
+    }
     public void setCurrentBlockIndex(int idx) { this.currentBlockIndex = idx; }
     public void setTotalBlocks(int total) { this.totalBlocks = total; }
     public void setScrollPositionPct(double pct) { this.scrollPositionPct = pct; }

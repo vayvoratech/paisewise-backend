@@ -24,13 +24,16 @@ public class LearnService {
     private final LessonRepository lessonRepo;
     private final UserLessonProgressRepository progressRepo;
     private final JargonRepository jargonRepo;
+    private final StreakService streakService;
 
     public LearnService(LessonRepository lessonRepo,
                         UserLessonProgressRepository progressRepo,
-                        JargonRepository jargonRepo) {
+                        JargonRepository jargonRepo,
+                        StreakService streakService) {
         this.lessonRepo = lessonRepo;
         this.progressRepo = progressRepo;
         this.jargonRepo = jargonRepo;
+        this.streakService = streakService;
     }
 
     public List<Lesson> getLessons() {
@@ -52,6 +55,7 @@ public class LearnService {
         }
         progress.setLastViewedAt(Instant.now());
         progressRepo.save(progress);
+        streakService.updateStreak(userId);
     }
 
     @Transactional
@@ -63,6 +67,7 @@ public class LearnService {
         progress.setCompletedAt(Instant.now());
         progress.setLastViewedAt(Instant.now());
         progressRepo.save(progress);
+        streakService.updateStreak(userId);
     }
 
     public double getLessonProgress(UUID userId) {
