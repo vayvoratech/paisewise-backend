@@ -112,4 +112,5 @@ public class Order {
     public void setAvgPrice(BigDecimal avgPrice) { this.avgPrice = avgPrice; }
     public void setBrokerOrderId(String brokerOrderId) { this.brokerOrderId = brokerOrderId; }
     public void setBrokerMessage(String brokerMessage) { this.brokerMessage = brokerMessage; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 }

@@ -5,6 +5,7 @@ import in.sapphirus.rupee.practice.domain.Order;
 import in.sapphirus.rupee.practice.domain.Stock;
 import in.sapphirus.rupee.practice.repo.OrderRepository;
 import in.sapphirus.rupee.practice.repo.StockRepository;
+import in.sapphirus.rupee.practice.service.PaperOrderService;
 import in.sapphirus.rupee.security.CurrentUser;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -20,22 +21,29 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/practice")
 public class PracticeController {
-
     private static final int XP_PER_TRADE = 25;
-
+    private final PaperOrderService paperOrderService;
     private final StockRepository stocks;
     private final OrderRepository orders;
 
-    public PracticeController(StockRepository stocks, OrderRepository orders) {
+    public PracticeController(StockRepository stocks,
+                              OrderRepository orders,
+                              PaperOrderService paperOrderService) {
         this.stocks = stocks;
         this.orders = orders;
+        this.paperOrderService = paperOrderService;
     }
 
     public record StockView(String symbol, String name, double price, double changePct,
                             String emoji, @JsonRawValue String trend) {}
 
-    public record PlaceOrderRequest(@NotBlank String symbol, @NotBlank String side,
-                                    @Min(1) int shares, @NotBlank String orderType) {}
+    public record PlaceOrderRequest(
+            @NotBlank String symbol,
+            @NotBlank String side,
+            @Min(1) int shares,
+            @NotBlank String orderType,
+            BigDecimal price
+    ) {}
 
     public record OrderReceipt(String symbol, int shares, java.math.BigDecimal pricePerShare,
                                java.math.BigDecimal totalPaid, String orderType, String status,
@@ -55,49 +63,98 @@ public class PracticeController {
     @PostMapping("/orders")
     @ResponseStatus(HttpStatus.CREATED)
     public OrderReceipt placeOrder(@RequestBody PlaceOrderRequest req) {
-        Stock stock = stocks.findById(req.symbol())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Stock not found"));
-
-        // ASSUMPTION: CurrentUser.requireId() still returns String — adjust if it
-        // already returns UUID directly.
         UUID userId = UUID.fromString(CurrentUser.requireId());
 
-        // client_order_id is the idempotency key the new schema requires. Generating
-        // it server-side here since this endpoint doesn't currently accept one from
-        // the client — fine for now, but real trading endpoints should let the app
-        // generate this so retries after a network glitch don't double-order.
-        String clientOrderId = userId + "-" + System.currentTimeMillis();
+        Stock stock = stocks.findById(req.symbol())
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Stock not found"
+                        ));
 
-        Order order = new Order(
-                userId,
-                clientOrderId,
-                stock.getSymbol(),
-                "NSE",                      // ASSUMPTION: practice.stocks has no exchange field —
-                // defaulting to NSE. Confirm this is correct for all
-                // symbols in your stocks table.
-                req.side().toUpperCase(),
-                req.orderType().toUpperCase(),
-                "CNC",                      // ASSUMPTION: practice trades are always delivery-style.
-                req.shares(),
-                true                        // is_paper — always true here, this is practice-service.
+        String orderType = req.orderType().toUpperCase();
+        String side = req.side().toUpperCase();
+
+        Order order;
+
+        if ("MARKET".equals(orderType)) {
+
+            if ("BUY".equals(side)) {
+                order = paperOrderService.executeMarketBuy(
+                        userId,
+                        stock,
+                        req.shares()
+                );
+            } else if ("SELL".equals(side)) {
+                order = paperOrderService.executeMarketSell(
+                        userId,
+                        stock,
+                        req.shares()
+                );
+            } else {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid order side"
+                );
+            }
+
+        } else if ("LIMIT".equals(orderType)) {
+
+        if (req.price() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Price is required for LIMIT orders"
+            );
+        }
+
+        if ("BUY".equals(side)) {
+
+            order = paperOrderService.placeLimitBuy(
+                    userId,
+                    stock,
+                    req.shares(),
+                    req.price()
+            );
+
+        } else if ("SELL".equals(side)) {
+
+            order = paperOrderService.placeLimitSell(
+                    userId,
+                    stock,
+                    req.shares(),
+                    req.price()
+            );
+
+        } else {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid order side"
+            );
+        }
+
+        } else {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Unsupported order type"
+            );
+        }
+
+        BigDecimal price = order.getPrice();
+
+        BigDecimal total = price.multiply(
+                BigDecimal.valueOf(order.getQuantity())
         );
-        order.setStatus("COMPLETE");        // simulate instant fill, matching old behavior.
-        order.setFilledQty(req.shares());
-        order.setAvgPrice(BigDecimal.valueOf(stock.getPrice()));
 
-        orders.save(order);
-
-        BigDecimal price = BigDecimal.valueOf(stock.getPrice());
-        BigDecimal total = price.multiply(BigDecimal.valueOf(req.shares()));
-
-        // NOTE: XP-per-trade tracking is no longer part of practice.orders in the new
-        // schema — that responsibility moved to learn-service/profile-service's XP
-        // system. If you still want XP awarded on a trade, that needs a real decision:
-        // either call profile-service from here, or leave trades as XP-free and only
-        // award XP for lessons/quizzes. Not something to silently invent — flagging it.
-
-        return new OrderReceipt(order.getSymbol(), order.getQuantity(), price, total,
-                order.getOrderType(), order.getStatus(), XP_PER_TRADE);
+        return new OrderReceipt(
+                order.getSymbol(),
+                order.getQuantity(),
+                price,
+                total,
+                order.getOrderType(),
+                order.getStatus(),
+                XP_PER_TRADE
+        );
     }
 
     @GetMapping("/orders")
