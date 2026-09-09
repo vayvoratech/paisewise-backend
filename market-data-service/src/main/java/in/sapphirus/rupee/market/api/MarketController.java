@@ -1,0 +1,110 @@
+package in.sapphirus.rupee.market.api;
+
+import in.sapphirus.rupee.market.domain.Symbol;
+import in.sapphirus.rupee.market.dto.CandleDto;
+import in.sapphirus.rupee.market.dto.IndexQuoteDto;
+import in.sapphirus.rupee.market.dto.StockQuoteDto;
+import in.sapphirus.rupee.market.dto.MarketStatusResponse;
+import in.sapphirus.rupee.market.dto.TopMoversDto;
+import in.sapphirus.rupee.market.service.ExchangeHolidayService;
+import in.sapphirus.rupee.market.service.MarketDataService;
+import in.sapphirus.rupee.market.service.SymbolSyncJob;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
+import java.util.List;
+
+@RestController
+@RequestMapping("/market")
+public class MarketController {
+
+    private final MarketDataService marketDataService;
+    private final SymbolSyncJob symbolSyncJob;
+    private final ExchangeHolidayService holidayService;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    public MarketController(MarketDataService marketDataService,
+                            SymbolSyncJob symbolSyncJob,
+                            ExchangeHolidayService holidayService,
+                            StringRedisTemplate redisTemplate,
+                            ObjectMapper objectMapper) {
+        this.marketDataService = marketDataService;
+        this.symbolSyncJob = symbolSyncJob;
+        this.holidayService = holidayService;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<MarketStatusResponse> getStatus() {
+        boolean open = holidayService.isMarketOpen(Instant.now());
+        String session = open ? "OPEN" : "CLOSED";
+        // NSE normal hours start at 09:15 AM
+        return ResponseEntity.ok(new MarketStatusResponse(open, session, "09:15 AM"));
+    }
+
+    @GetMapping("/top-movers")
+    public ResponseEntity<TopMoversDto> getTopMovers() {
+        try {
+            String cached = redisTemplate.opsForValue().get("market:top-movers");
+            if (cached != null) {
+                return ResponseEntity.ok(objectMapper.readValue(cached, TopMoversDto.class));
+            }
+        } catch (Exception e) {
+            System.err.println("Redis cache read failure for top movers: " + e.getMessage());
+        }
+
+        // DB Fallback
+        TopMoversDto movers = marketDataService.calculateTopMovers();
+        return ResponseEntity.ok(movers);
+    }
+
+    @GetMapping("/quote")
+    public ResponseEntity<StockQuoteDto> getQuote(@RequestParam String symbol) {
+        return ResponseEntity.ok(marketDataService.getQuote(symbol));
+    }
+
+    @PostMapping("/quotes")
+    public ResponseEntity<List<StockQuoteDto>> getQuotes(@RequestBody List<String> symbols) {
+        return ResponseEntity.ok(marketDataService.getQuotes(symbols));
+    }
+
+    @GetMapping("/candles/{symbol}")
+    public ResponseEntity<List<CandleDto>> getCandles(
+            @PathVariable String symbol,
+            @RequestParam String resolution,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        return ResponseEntity.ok(marketDataService.getCandles(symbol, resolution, from, to));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Symbol>> searchSymbols(@RequestParam String query) {
+        return ResponseEntity.ok(marketDataService.searchSymbols(query));
+    }
+
+    @GetMapping("/indices")
+    public ResponseEntity<List<IndexQuoteDto>> getIndices() {
+        return ResponseEntity.ok(marketDataService.getIndices());
+    }
+
+    @GetMapping("/symbol/{symbol}")
+    public ResponseEntity<Symbol> getSymbol(@PathVariable String symbol) {
+        return ResponseEntity.ok(marketDataService.getSymbol(symbol));
+    }
+
+    @PostMapping("/sync-symbols-now")
+    public ResponseEntity<String> syncSymbolsNow() {
+        try {
+            int count = symbolSyncJob.syncSymbolsNow();
+            return ResponseEntity.ok("Successfully synced " + count + " symbols from NSE CSV.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error syncing symbols: " + e.getMessage());
+        }
+    }
+}

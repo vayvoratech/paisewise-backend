@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://qa-db-server:5432/rupee_db
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://qa-eureka:8761/eureka/
+
+  instance:
+    hostname: qa-portfolio-service
+
+rupee:
+  jwt:
+    secret: ${JWT_SECRET}
