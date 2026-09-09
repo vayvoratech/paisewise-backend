@@ -33,24 +33,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain chain) throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            try {
-                Claims claims = jwtService.parse(token);
-                if (jwtService.isAccessToken(claims)
-                        && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    var auth = new UsernamePasswordAuthenticationToken(
-                            claims.getSubject(),
-                            null,
-                            List.of(new SimpleGrantedAuthority("ROLE_USER")));
-                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+        String gatewayUserId = request.getHeader("X-User-Id");
+        if (gatewayUserId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            var auth = new UsernamePasswordAuthenticationToken(
+                    gatewayUserId,
+                    null,
+                    List.of(new SimpleGrantedAuthority("ROLE_USER")));
+            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        } else {
+            String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                String token = header.substring(7);
+                try {
+                    Claims claims = jwtService.parse(token);
+                    if (jwtService.isAccessToken(claims)
+                            && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        var auth = new UsernamePasswordAuthenticationToken(
+                                claims.getSubject(),
+                                null,
+                                List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
+                } catch (JwtException ignored) {
+                    SecurityContextHolder.clearContext();
                 }
-            } catch (JwtException ignored) {
-                // Invalid/expired token → leave context unauthenticated; the
-                // security chain returns 401 for protected endpoints.
-                SecurityContextHolder.clearContext();
             }
         }
         chain.doFilter(request, response);

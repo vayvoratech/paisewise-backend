@@ -16,8 +16,8 @@
 -- =====================================================================
 -- TABLE 17: user_features
 -- =====================================================================
-CREATE TABLE profile.user_features (
-                                       user_id                         UUID PRIMARY KEY REFERENCES auth.users(id),
+CREATE TABLE IF NOT EXISTS profile.user_features (
+                                       user_id                         UUID PRIMARY KEY,
                                        lessons_completed_total         INTEGER NOT NULL DEFAULT 0,
                                        lessons_completed_7d            INTEGER NOT NULL DEFAULT 0,
                                        lessons_completed_30d           INTEGER NOT NULL DEFAULT 0,
@@ -52,12 +52,18 @@ CREATE INDEX idx_user_features_inactive ON profile.user_features(days_since_last
 -- =====================================================================
 -- TABLE 12: notifications
 -- =====================================================================
-CREATE TYPE profile.notification_channel AS ENUM ('PUSH','SMS','IN_APP','EMAIL');
-CREATE TYPE profile.notification_status AS ENUM ('PENDING','SENT','DELIVERED','READ','FAILED');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'notification_channel' AND n.nspname = 'profile') THEN
+        CREATE TYPE profile.notification_channel AS ENUM ('PUSH','SMS','IN_APP','EMAIL');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'notification_status' AND n.nspname = 'profile') THEN
+        CREATE TYPE profile.notification_status AS ENUM ('PENDING','SENT','DELIVERED','READ','FAILED');
+    END IF;
+END $$;
 
-CREATE TABLE profile.notifications (
+CREATE TABLE IF NOT EXISTS profile.notifications (
                                        id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                                       user_id         UUID NOT NULL REFERENCES auth.users(id),
+                                       user_id         UUID NOT NULL,
                                        channel         profile.notification_channel NOT NULL,
                                        type            VARCHAR(50) NOT NULL,
                                        title           VARCHAR(200) NOT NULL,

@@ -31,6 +31,9 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Column(name = "mpin_hash")
+    private String mpinHash;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -80,6 +83,9 @@ public class User {
 
     public String getPasswordHash() { return passwordHash; }
     public void setPassword(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public String getMpinHash() { return mpinHash; }
+    public void setMpinHash(String mpinHash) { this.mpinHash = mpinHash; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

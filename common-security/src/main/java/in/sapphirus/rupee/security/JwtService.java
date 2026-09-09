@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Issues and validates JWTs. auth-service uses the issue methods; every service
@@ -37,15 +38,21 @@ public class JwtService {
     private String build(String userId, String phone, String type, long ttlMs, Map<String, Object> extra) {
         Instant now = Instant.now();
         return Jwts.builder()
+                .claims(extra)
+                .id(UUID.randomUUID().toString())
                 .issuer(props.getIssuer())
                 .subject(userId)
                 .claim("phone", phone)
                 .claim("type", type)
-                .claims(extra)
+                .claim("nonce", UUID.randomUUID().toString())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(ttlMs)))
                 .signWith(key)
                 .compact();
+    }
+
+    public String getJti(Claims claims) {
+        return claims.getId();
     }
 
     /** Parses and verifies a token; throws JwtException if invalid/expired. */

@@ -47,9 +47,14 @@ public class ResourceServerSecurityConfig {
                                 "/auth/login",
                                 "/auth/register",
                                 "/auth/refresh",
+                                "/auth/refresh-token",
                                 "/auth/forgot-password",
                                 "/auth/verify-otp",
-                                "/auth/reset-password").permitAll()
+                                "/auth/reset-password",
+                                "/auth/send-otp",
+                                "/auth/set-mpin",
+                                "/auth/login/mpin",
+                                "/auth/logout").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);

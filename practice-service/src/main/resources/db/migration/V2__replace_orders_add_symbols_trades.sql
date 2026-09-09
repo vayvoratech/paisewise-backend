@@ -27,14 +27,24 @@ CREATE TABLE practice.symbols (
 -- =====================================================================
 -- TABLE 5: orders
 -- =====================================================================
-CREATE TYPE practice.order_side AS ENUM ('BUY','SELL');
-CREATE TYPE practice.order_type AS ENUM ('MARKET','LIMIT','SL','SL-M');
-CREATE TYPE practice.product_type AS ENUM ('CNC','MIS','NRML');
-CREATE TYPE practice.order_status AS ENUM ('PENDING','OPEN','PARTIAL','COMPLETE','REJECTED','CANCELLED');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'order_side' AND n.nspname = 'practice') THEN
+        CREATE TYPE practice.order_side AS ENUM ('BUY','SELL');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'order_type' AND n.nspname = 'practice') THEN
+        CREATE TYPE practice.order_type AS ENUM ('MARKET','LIMIT','SL','SL-M');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'product_type' AND n.nspname = 'practice') THEN
+        CREATE TYPE practice.product_type AS ENUM ('CNC','MIS','NRML');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'order_status' AND n.nspname = 'practice') THEN
+        CREATE TYPE practice.order_status AS ENUM ('PENDING','OPEN','PARTIAL','COMPLETE','REJECTED','CANCELLED');
+    END IF;
+END $$;
 
-CREATE TABLE practice.orders (
+CREATE TABLE IF NOT EXISTS practice.orders (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id             UUID NOT NULL REFERENCES auth.users(id),   -- Issue 1 fix: schema-qualified
+    user_id             UUID NOT NULL,
     client_order_id     VARCHAR(64) NOT NULL UNIQUE,
     symbol              VARCHAR(30) NOT NULL REFERENCES practice.symbols(symbol),
     exchange            VARCHAR(5) NOT NULL CHECK (exchange IN ('NSE','BSE')),
@@ -55,9 +65,9 @@ CREATE TABLE practice.orders (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_orders_user_id ON practice.orders(user_id, placed_at DESC);
-CREATE UNIQUE INDEX idx_orders_client_order_id ON practice.orders(client_order_id);
-CREATE INDEX idx_orders_broker_order_id ON practice.orders(broker_order_id) WHERE broker_order_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON practice.orders(user_id, placed_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_client_order_id ON practice.orders(client_order_id);
+CREATE INDEX IF NOT EXISTS idx_orders_broker_order_id ON practice.orders(broker_order_id) WHERE broker_order_id IS NOT NULL;
 CREATE INDEX idx_orders_open ON practice.orders(user_id, symbol) WHERE status IN ('PENDING','OPEN','PARTIAL');
 CREATE INDEX idx_orders_paper_open ON practice.orders(symbol, price, side)
     WHERE is_paper = true AND status IN ('OPEN','PENDING') AND order_type = 'LIMIT';
@@ -70,6 +80,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_orders_updated_at ON practice.orders;
 CREATE TRIGGER trg_orders_updated_at
     BEFORE UPDATE ON practice.orders
     FOR EACH ROW
@@ -78,10 +89,10 @@ CREATE TRIGGER trg_orders_updated_at
 -- =====================================================================
 -- TABLE 6: trades
 -- =====================================================================
-CREATE TABLE practice.trades (
+CREATE TABLE IF NOT EXISTS practice.trades (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id            UUID NOT NULL REFERENCES practice.orders(id),
-    user_id             UUID NOT NULL REFERENCES auth.users(id),
+    user_id             UUID NOT NULL,
     symbol              VARCHAR(30) NOT NULL,
     exchange            VARCHAR(5) NOT NULL,
     side                practice.order_side NOT NULL,
@@ -99,7 +110,7 @@ CREATE TABLE practice.trades (
     traded_at           TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX idx_trades_user_id ON practice.trades(user_id, traded_at DESC);
-CREATE INDEX idx_trades_order_id ON practice.trades(order_id);
-CREATE UNIQUE INDEX idx_trades_broker_trade_id ON practice.trades(broker_trade_id) WHERE broker_trade_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trades_user_id ON practice.trades(user_id, traded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_trades_order_id ON practice.trades(order_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trades_broker_trade_id ON practice.trades(broker_trade_id) WHERE broker_trade_id IS NOT NULL;
 CREATE INDEX idx_trades_user_symbol_date ON practice.trades(user_id, symbol, traded_at) WHERE is_paper = false;

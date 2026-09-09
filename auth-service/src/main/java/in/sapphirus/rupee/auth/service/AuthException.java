@@ -21,7 +21,11 @@ public class AuthException extends RuntimeException {
     }
 
     public static AuthException phoneTaken() {
-        return new AuthException(HttpStatus.CONFLICT, "PHONE_TAKEN", "An account with this phone already exists.");
+        return new AuthException(HttpStatus.CONFLICT, "PHONE_TAKEN", "An account with this phone number already exists. Please log in.");
+    }
+
+    public static AuthException emailTaken() {
+        return new AuthException(HttpStatus.CONFLICT, "EMAIL_TAKEN", "An account with this email address already exists. Please log in.");
     }
 
     public static AuthException invalidRefresh() {

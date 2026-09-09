@@ -13,4 +13,10 @@ public class AuthExceptionHandler {
     public ResponseEntity<ApiError> handle(AuthException ex) {
         return ResponseEntity.status(ex.getStatus()).body(new ApiError(ex.getCode(), ex.getMessage()));
     }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT)
+                .body(new ApiError("ACCOUNT_EXISTS", "An account with this phone number or email address already exists. Please log in."));
+    }
 }

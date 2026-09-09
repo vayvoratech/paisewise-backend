@@ -27,7 +27,7 @@ ALTER TABLE auth.users
 -- =====================================================================
 -- TABLE 1: otp_verifications
 -- =====================================================================
-CREATE TABLE auth.otp_verifications (
+CREATE TABLE IF NOT EXISTS auth.otp_verifications (
                                         id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                                         phone           VARCHAR(15) NOT NULL,
                                         otp_hash        VARCHAR(60) NOT NULL,
@@ -45,13 +45,13 @@ CREATE TABLE auth.otp_verifications (
                                         created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_otp_verifications_phone_purpose
+CREATE INDEX IF NOT EXISTS idx_otp_verifications_phone_purpose
     ON auth.otp_verifications(phone, purpose, created_at DESC)
     WHERE is_used = false AND is_locked = false;
-CREATE INDEX idx_otp_verifications_ip
+CREATE INDEX IF NOT EXISTS idx_otp_verifications_ip
     ON auth.otp_verifications(ip_address, created_at DESC)
     WHERE ip_address IS NOT NULL;
-CREATE INDEX idx_otp_verifications_expires
+CREATE INDEX IF NOT EXISTS idx_otp_verifications_expires
     ON auth.otp_verifications(expires_at)
     WHERE is_used = false;
 
@@ -68,6 +68,7 @@ RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_invalidate_previous_otps ON auth.otp_verifications;
 CREATE TRIGGER trg_invalidate_previous_otps
     AFTER INSERT ON auth.otp_verifications
     FOR EACH ROW
@@ -84,6 +85,7 @@ RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_otp_auto_lock ON auth.otp_verifications;
 CREATE TRIGGER trg_otp_auto_lock
     BEFORE UPDATE OF attempts ON auth.otp_verifications
     FOR EACH ROW
@@ -92,18 +94,23 @@ CREATE TRIGGER trg_otp_auto_lock
 -- =====================================================================
 -- TABLE 2: kyc_documents
 -- =====================================================================
-CREATE TYPE auth.kyc_document_status AS ENUM (
-    'INITIATED','PAN_SUBMITTED','DIGILOCKER_COMPLETED','VIDEO_KYC_PENDING',
-    'VIDEO_KYC_COMPLETED','UNDER_REVIEW','VERIFIED','REJECTED','RESUBMISSION_REQUIRED'
-);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'kyc_document_status' AND n.nspname = 'auth') THEN
+        CREATE TYPE auth.kyc_document_status AS ENUM (
+            'INITIATED','PAN_SUBMITTED','DIGILOCKER_COMPLETED','VIDEO_KYC_PENDING',
+            'VIDEO_KYC_COMPLETED','UNDER_REVIEW','VERIFIED','REJECTED','RESUBMISSION_REQUIRED'
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'kyc_rejection_reason' AND n.nspname = 'auth') THEN
+        CREATE TYPE auth.kyc_rejection_reason AS ENUM (
+            'PAN_MISMATCH','NAME_MISMATCH','POOR_DOCUMENT_QUALITY','FAKE_DOCUMENT_SUSPECTED',
+            'INCOMPLETE_SUBMISSION','FACE_MISMATCH','ADDRESS_MISMATCH','MINOR_DETECTED',
+            'DUPLICATE_PAN','OTHER'
+        );
+    END IF;
+END $$;
 
-CREATE TYPE auth.kyc_rejection_reason AS ENUM (
-    'PAN_MISMATCH','NAME_MISMATCH','POOR_DOCUMENT_QUALITY','FAKE_DOCUMENT_SUSPECTED',
-    'INCOMPLETE_SUBMISSION','FACE_MISMATCH','ADDRESS_MISMATCH','MINOR_DETECTED',
-    'DUPLICATE_PAN','OTHER'
-);
-
-CREATE TABLE auth.kyc_documents (
+CREATE TABLE IF NOT EXISTS auth.kyc_documents (
                                     id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                                     user_id                     UUID NOT NULL REFERENCES auth.users(id),   -- Issue 1 fix: schema-qualified
                                     status                      auth.kyc_document_status NOT NULL DEFAULT 'INITIATED',
@@ -152,13 +159,13 @@ CREATE TABLE auth.kyc_documents (
                                     CONSTRAINT uq_kyc_user_attempt UNIQUE (user_id, attempt_number)
 );
 
-CREATE UNIQUE INDEX idx_kyc_documents_user_latest ON auth.kyc_documents(user_id, attempt_number DESC);
-CREATE INDEX idx_kyc_documents_pending_review ON auth.kyc_documents(status, submitted_at ASC)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_kyc_documents_user_latest ON auth.kyc_documents(user_id, attempt_number DESC);
+CREATE INDEX IF NOT EXISTS idx_kyc_documents_pending_review ON auth.kyc_documents(status, submitted_at ASC)
     WHERE status IN ('VIDEO_KYC_COMPLETED','UNDER_REVIEW');
-CREATE INDEX idx_kyc_documents_rejected ON auth.kyc_documents(rejection_reason, rejected_at DESC)
+CREATE INDEX IF NOT EXISTS idx_kyc_documents_rejected ON auth.kyc_documents(rejection_reason, rejected_at DESC)
     WHERE status = 'REJECTED';
-CREATE INDEX idx_kyc_documents_pan_last4 ON auth.kyc_documents(pan_last4) WHERE pan_last4 IS NOT NULL;
-CREATE INDEX idx_kyc_documents_video_ref ON auth.kyc_documents(video_kyc_provider, video_kyc_ref_id)
+CREATE INDEX IF NOT EXISTS idx_kyc_documents_pan_last4 ON auth.kyc_documents(pan_last4) WHERE pan_last4 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_kyc_documents_video_ref ON auth.kyc_documents(video_kyc_provider, video_kyc_ref_id)
     WHERE video_kyc_ref_id IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION auth.update_kyc_updated_at()
@@ -169,6 +176,7 @@ RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_kyc_documents_updated_at ON auth.kyc_documents;
 CREATE TRIGGER trg_kyc_documents_updated_at
     BEFORE UPDATE ON auth.kyc_documents
     FOR EACH ROW
@@ -189,6 +197,7 @@ RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_sync_kyc_to_user ON auth.kyc_documents;
 CREATE TRIGGER trg_sync_kyc_to_user
     AFTER UPDATE OF status ON auth.kyc_documents
     FOR EACH ROW
@@ -208,6 +217,7 @@ RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_prevent_full_aadhaar ON auth.kyc_documents;
 CREATE TRIGGER trg_prevent_full_aadhaar
     BEFORE INSERT OR UPDATE ON auth.kyc_documents
                          FOR EACH ROW
@@ -216,7 +226,7 @@ CREATE TRIGGER trg_prevent_full_aadhaar
 -- =====================================================================
 -- TABLE 15: audit_log (fix for Issue 10: created as partitioned from the start)
 -- =====================================================================
-CREATE TABLE auth.audit_log (
+CREATE TABLE IF NOT EXISTS auth.audit_log (
                                 id              BIGSERIAL,
                                 user_id         UUID REFERENCES auth.users(id),
                                 action          VARCHAR(60) NOT NULL,
@@ -237,13 +247,13 @@ CREATE TABLE auth.audit_log (
 
 -- One partition covering the current rollout year. Add a new one
 -- (audit_log_2027 etc.) each year going forward.
-CREATE TABLE auth.audit_log_2026 PARTITION OF auth.audit_log
+CREATE TABLE IF NOT EXISTS auth.audit_log_2026 PARTITION OF auth.audit_log
     FOR VALUES FROM ('2026-01-01') TO ('2027-01-01');
 
-CREATE INDEX idx_audit_log_user_id ON auth.audit_log(user_id, created_at DESC) WHERE user_id IS NOT NULL;
-CREATE INDEX idx_audit_log_failures ON auth.audit_log(action, result, created_at DESC) WHERE result = 'FAILURE';
-CREATE INDEX idx_audit_log_entity ON auth.audit_log(entity_type, entity_id, created_at) WHERE entity_id IS NOT NULL;
-CREATE INDEX idx_audit_log_created_at ON auth.audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON auth.audit_log(user_id, created_at DESC) WHERE user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_log_failures ON auth.audit_log(action, result, created_at DESC) WHERE result = 'FAILURE';
+CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON auth.audit_log(entity_type, entity_id, created_at) WHERE entity_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON auth.audit_log(created_at DESC);
 
 -- Fix for Issue 9: application_user role now exists (created at top of this file).
 -- Fix (found during testing): also grant USAGE on the schema itself, or
