@@ -26,6 +26,9 @@ public class Trade {
     @Column(nullable = false, length = 5)
     private String exchange;
 
+    @Column(name = "side", nullable = false, length = 10)
+    private String side;
+
     @Column(name = "fill_qty", nullable = false)
     private int fillQty;
 
@@ -52,6 +55,7 @@ public class Trade {
             UUID userId,
             String symbol,
             String exchange,
+            String side,
             int fillQty,
             BigDecimal fillPrice,
             BigDecimal netAmount,
@@ -61,6 +65,7 @@ public class Trade {
         this.userId = userId;
         this.symbol = symbol;
         this.exchange = exchange;
+        this.side = side;
         this.fillQty = fillQty;
         this.fillPrice = fillPrice;
         this.netAmount = netAmount;
@@ -85,6 +90,10 @@ public class Trade {
 
     public String getExchange() {
         return exchange;
+    }
+
+    public String getSide() {
+        return side;
     }
 
     public int getFillQty() {

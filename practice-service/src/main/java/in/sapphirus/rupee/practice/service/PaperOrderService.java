@@ -3,8 +3,10 @@ package in.sapphirus.rupee.practice.service;
 import in.sapphirus.rupee.practice.domain.*;
 import in.sapphirus.rupee.practice.quote.RedisQuoteService;
 import in.sapphirus.rupee.practice.repo.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -61,12 +63,20 @@ public class PaperOrderService {
         return price.multiply(BigDecimal.valueOf(quantity));
     }
 
+    private String resolveClientOrderId(UUID userId, String provided) {
+        return (provided != null && !provided.isBlank())
+                ? provided
+                : userId + "-" + System.currentTimeMillis();
+    }
+
     @Transactional
-    public Order executeMarketBuy(UUID userId, Stock stock, int quantity) {
+    public Order executeMarketBuy(UUID userId, Stock stock, int quantity, String clientOrderId) {
         BigDecimal marketPrice = quotes.getQuote(stock.getSymbol());
 
+        // Fall back to the stock's catalog price when Redis is unavailable or
+        // the quote has not been published yet (e.g. Redis just restarted).
         if (marketPrice == null) {
-            throw new IllegalStateException("Quote not available for " + stock.getSymbol());
+            marketPrice = BigDecimal.valueOf(stock.getPrice());
         }
 
         BigDecimal orderValue = calculateOrderValue(marketPrice, quantity);
@@ -82,11 +92,9 @@ public class PaperOrderService {
         position.setQuantity(position.getQuantity() + quantity);
         paperPositions.save(position);
 
-        String clientOrderId = userId + "-" + System.currentTimeMillis();
-
         Order order = new Order(
                 userId,
-                clientOrderId,
+                resolveClientOrderId(userId, clientOrderId),
                 stock.getSymbol(),
                 "NSE",
                 "BUY",
@@ -123,13 +131,12 @@ public class PaperOrderService {
     }
 
     @Transactional
-    public Order executeMarketSell(UUID userId, Stock stock, int quantity) {
+    public Order executeMarketSell(UUID userId, Stock stock, int quantity, String clientOrderId) {
         BigDecimal marketPrice = quotes.getQuote(stock.getSymbol());
 
+        // Fall back to the stock's catalog price when Redis is unavailable.
         if (marketPrice == null) {
-            throw new IllegalStateException(
-                    "Quote not available for " + stock.getSymbol()
-            );
+            marketPrice = BigDecimal.valueOf(stock.getPrice());
         }
 
         PaperAccount account = getOrCreateAccount(userId);
@@ -161,12 +168,9 @@ public class PaperOrderService {
         );
         paperPositions.save(position);
 
-        String clientOrderId =
-                userId + "-" + System.currentTimeMillis();
-
         Order order = new Order(
                 userId,
-                clientOrderId,
+                resolveClientOrderId(userId, clientOrderId),
                 stock.getSymbol(),
                 "NSE",
                 "SELL",
@@ -200,7 +204,8 @@ public class PaperOrderService {
             UUID userId,
             Stock stock,
             int quantity,
-            BigDecimal limitPrice
+            BigDecimal limitPrice,
+            String clientOrderId
     ) {
         if (limitPrice == null || limitPrice.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Limit price must be greater than zero");
@@ -219,12 +224,9 @@ public class PaperOrderService {
         );
         paperAccounts.save(account);
 
-        String clientOrderId =
-                userId + "-" + System.currentTimeMillis();
-
         Order order = new Order(
                 userId,
-                clientOrderId,
+                resolveClientOrderId(userId, clientOrderId),
                 stock.getSymbol(),
                 "NSE",
                 "BUY",
@@ -246,7 +248,8 @@ public class PaperOrderService {
             UUID userId,
             Stock stock,
             int quantity,
-            BigDecimal limitPrice
+            BigDecimal limitPrice,
+            String clientOrderId
     ) {
         if (limitPrice == null || limitPrice.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(
@@ -272,12 +275,9 @@ public class PaperOrderService {
 
         paperPositions.save(position);
 
-        String clientOrderId =
-                userId + "-" + System.currentTimeMillis();
-
         Order order = new Order(
                 userId,
-                clientOrderId,
+                resolveClientOrderId(userId, clientOrderId),
                 stock.getSymbol(),
                 "NSE",
                 "SELL",
@@ -475,6 +475,7 @@ public class PaperOrderService {
                 userId,
                 symbol,
                 "NSE",
+                side,
                 quantity,
                 fillPrice,
                 netAmount,
@@ -497,6 +498,40 @@ public class PaperOrderService {
             throw new IllegalArgumentException(
                     "Insufficient available paper trading balance"
             );
+        }
+    }
+
+    @Transactional
+    public void cancelOrder(UUID userId, UUID orderId) {
+        Order order = orders.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
+        if (!order.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your order");
+        }
+
+        if (!"OPEN".equals(order.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order is not OPEN");
+        }
+
+        order.setStatus("CANCELLED");
+        orders.save(order);
+
+        // Release reserved resources
+        if ("BUY".equals(order.getSide()) && "LIMIT".equals(order.getOrderType())) {
+            PaperAccount account = getOrCreateAccount(userId);
+            BigDecimal reserved = calculateOrderValue(order.getPrice(), order.getQuantity());
+            BigDecimal newReserved = account.getReservedBalance().subtract(reserved);
+            account.setReservedBalance(newReserved.max(BigDecimal.ZERO));
+            paperAccounts.save(account);
+        } else if ("SELL".equals(order.getSide()) && "LIMIT".equals(order.getOrderType())) {
+            PaperPosition position = paperPositions.findByUserIdAndSymbol(userId, order.getSymbol())
+                    .orElse(null);
+            if (position != null) {
+                int newReserved = Math.max(0, position.getReservedQuantity() - order.getQuantity());
+                position.setReservedQuantity(newReserved);
+                paperPositions.save(position);
+            }
         }
     }
 }

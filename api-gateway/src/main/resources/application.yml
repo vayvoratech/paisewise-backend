@@ -36,8 +36,13 @@ spring:
           uri: lb://community-service
           predicates:
             - Path=/community/**
+        - id: market-service
+          uri: lb://market-service
+          predicates:
+            - Path=/market/**
       # CORS so the Expo web/mobile client can call the gateway.
       globalcors:
+        add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
             allowedOriginPatterns: "*"
