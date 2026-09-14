@@ -143,5 +143,6 @@ public class Order {
     public void setPaper(boolean paper) { this.isPaper = paper; }
     public void setValidity(String validity) { this.validity = validity; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 }
 
