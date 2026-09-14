@@ -24,7 +24,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/actuator/health/**",
                                 "/actuator/info",
-                                "/market/sync-symbols-now", // Permit testing endpoint without authentication
+                                "/market/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html")

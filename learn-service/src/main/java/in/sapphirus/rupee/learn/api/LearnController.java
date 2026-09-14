@@ -48,6 +48,8 @@ public class LearnController {
 
     public record ProgressResponse(double progressPercent) {}
 
+    public record UserProgressResponse(double progressPercent, List<String> completedLessonIds) {}
+
     public record QuizSubmitRequest(List<String> answers, int xpReward) {}
 
     @GetMapping("/lessons")
@@ -103,7 +105,15 @@ public class LearnController {
         return new ProgressResponse(percent);
     }
 
-    @GetMapping("/lessons/{lessonId}/quiz")
+    @GetMapping("/user-progress")
+    public UserProgressResponse getUserProgress() {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        double percent = learnService.getLessonProgress(userId);
+        List<String> completed = learnService.getCompletedLessonIds(userId);
+        return new UserProgressResponse(percent, completed);
+    }
+
+    @GetMapping({"/lessons/{lessonId}/quiz", "/quizzes/{lessonId}"})
     public List<QuizView> getLessonQuiz(@PathVariable String lessonId) {
         return quizService.getQuizForLesson(lessonId).stream()
                 .map(q -> new QuizView(q.getId(), q.getPrompt(), q.getSeconds(), q.getXp(),
@@ -111,7 +121,7 @@ public class LearnController {
                 .toList();
     }
 
-    @PostMapping("/lessons/{lessonId}/quiz/submit")
+    @PostMapping({"/lessons/{lessonId}/quiz/submit", "/quizzes/{lessonId}/submit"})
     public in.sapphirus.rupee.learn.domain.QuizAttempt submitLessonQuiz(
             @PathVariable String lessonId,
             @RequestBody QuizSubmitRequest req) {

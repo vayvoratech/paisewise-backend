@@ -89,8 +89,23 @@ public class LearnService {
         return ((double) completed / total) * 100.0;
     }
 
+    public List<String> getCompletedLessonIds(UUID userId) {
+        return progressRepo.findByUserId(userId).stream()
+                .filter(p -> "COMPLETED".equalsIgnoreCase(p.getStatus()))
+                .map(UserLessonProgress::getLessonId)
+                .toList();
+    }
+
     public JargonTerm getJargonTerm(String term) {
-        return jargonRepo.findById(term)
+        if (term == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Term is null");
+        }
+        String cleanTerm = term.trim().replaceAll("-", " ");
+        return jargonRepo.findByTermIgnoreCase(term)
+                .or(() -> jargonRepo.findByTermIgnoreCase(cleanTerm))
+                .or(() -> jargonRepo.findFirstByTermContainingIgnoreCase(term))
+                .or(() -> jargonRepo.findFirstByTermContainingIgnoreCase(cleanTerm))
+                .or(() -> jargonRepo.findById(term))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jargon term not found: " + term));
     }
 }

@@ -52,4 +52,13 @@ public class XpService {
             log.warn("Direct HTTP call to profile-service internal/xp/award note: {}", ex.getMessage());
         }
     }
+
+    public int calculateLevel(int xpTotal) {
+        if (xpTotal < 0) return 1;
+        return (xpTotal / 100) + 1;
+    }
+
+    public boolean checkAndProcessLevelUp(int oldXp, int newXp) {
+        return calculateLevel(newXp) > calculateLevel(oldXp);
+    }
 }

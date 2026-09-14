@@ -6,12 +6,10 @@ import in.sapphirus.rupee.learn.repo.QuizRepository;
 import in.sapphirus.rupee.learn.repo.QuizAttemptRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,7 +67,6 @@ class QuizServiceTest {
         when(attemptRepo.findByUserIdAndLessonIdOrderByAttemptNumberDesc(userId, "mf-3")).thenReturn(Collections.emptyList());
         when(attemptRepo.save(any(QuizAttempt.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        // Submit correct answer "A"
         QuizAttempt attempt = service.submitQuiz(userId, "mf-3", List.of("A"), 50);
 
         assertThat(attempt.getCorrectAnswers()).isEqualTo(1);
@@ -92,12 +89,93 @@ class QuizServiceTest {
         when(attemptRepo.findByUserIdAndLessonIdOrderByAttemptNumberDesc(userId, "mf-3")).thenReturn(List.of(attempt1));
         when(attemptRepo.save(any(QuizAttempt.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        // Submit correct answer "A" again
         QuizAttempt attempt2 = service.submitQuiz(userId, "mf-3", List.of("A"), 50);
 
         assertThat(attempt2.getAttemptNumber()).isEqualTo(2);
         assertThat(attempt2.isPassed()).isTrue();
-        // Should not award XP on second attempt
         verify(xpService, never()).awardXp(any(), anyInt(), anyString());
+    }
+
+    @Test
+    void submitQuiz_whenScoreBelow70Percent_doesNotMarkPassed() {
+        UUID userId = UUID.randomUUID();
+        String opts = "[{\"key\":\"A\",\"text\":\"Opt 1\",\"correct\":true},{\"key\":\"B\",\"text\":\"Opt 2\",\"correct\":false}]";
+        QuizQuestion q1 = new QuizQuestion("q1", "mf-3", "A", "P1", 15, 25, 1, opts, "E1");
+        QuizQuestion q2 = new QuizQuestion("q2", "mf-3", "A", "P2", 15, 25, 2, opts, "E2");
+
+        when(quizRepo.findByLessonId("mf-3")).thenReturn(List.of(q1, q2));
+        when(attemptRepo.findByUserIdAndLessonIdOrderByAttemptNumberDesc(userId, "mf-3")).thenReturn(Collections.emptyList());
+        when(attemptRepo.save(any(QuizAttempt.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        QuizAttempt attempt = service.submitQuiz(userId, "mf-3", List.of("B", "A"), 50);
+
+        assertThat(attempt.getScorePct()).isEqualTo(50.0);
+        assertThat(attempt.isPassed()).isFalse();
+        verify(xpService, never()).awardXp(any(), anyInt(), anyString());
+    }
+
+    @Test
+    void submitQuiz_whenAllAnswersWrong_calculatesZeroScore() {
+        UUID userId = UUID.randomUUID();
+        String opts = "[{\"key\":\"A\",\"text\":\"Opt 1\",\"correct\":true},{\"key\":\"B\",\"text\":\"Opt 2\",\"correct\":false}]";
+        QuizQuestion q1 = new QuizQuestion("q1", "mf-3", "A", "P1", 15, 50, 1, opts, "E1");
+
+        when(quizRepo.findByLessonId("mf-3")).thenReturn(List.of(q1));
+        when(attemptRepo.findByUserIdAndLessonIdOrderByAttemptNumberDesc(userId, "mf-3")).thenReturn(Collections.emptyList());
+        when(attemptRepo.save(any(QuizAttempt.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        QuizAttempt attempt = service.submitQuiz(userId, "mf-3", List.of("B"), 50);
+
+        assertThat(attempt.getCorrectAnswers()).isEqualTo(0);
+        assertThat(attempt.getScorePct()).isEqualTo(0.0);
+        assertThat(attempt.isPassed()).isFalse();
+    }
+
+    @Test
+    void submitQuiz_updatesStreakOnAttempt() {
+        UUID userId = UUID.randomUUID();
+        String opts = "[{\"key\":\"A\",\"text\":\"Opt 1\",\"correct\":true}]";
+        QuizQuestion q1 = new QuizQuestion("q1", "mf-3", "A", "P1", 15, 50, 1, opts, "E1");
+
+        when(quizRepo.findByLessonId("mf-3")).thenReturn(List.of(q1));
+        when(attemptRepo.findByUserIdAndLessonIdOrderByAttemptNumberDesc(userId, "mf-3")).thenReturn(Collections.emptyList());
+        when(attemptRepo.save(any(QuizAttempt.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        service.submitQuiz(userId, "mf-3", List.of("A"), 50);
+
+        verify(streakService, times(1)).updateStreak(userId);
+    }
+
+    @Test
+    void getQuizHistory_returnsUserAttemptsInDescOrder() {
+        UUID userId = UUID.randomUUID();
+        QuizAttempt a1 = new QuizAttempt(userId, "mf-1", 1);
+        when(attemptRepo.findByUserIdOrderByStartedAtDesc(userId)).thenReturn(List.of(a1));
+
+        List<QuizAttempt> history = service.getQuizHistory(userId);
+        assertThat(history).hasSize(1);
+        verify(attemptRepo, times(1)).findByUserIdOrderByStartedAtDesc(userId);
+    }
+
+    @Test
+    void getQuizHistory_whenNoAttempts_returnsEmptyList() {
+        UUID userId = UUID.randomUUID();
+        when(attemptRepo.findByUserIdOrderByStartedAtDesc(userId)).thenReturn(Collections.emptyList());
+
+        List<QuizAttempt> history = service.getQuizHistory(userId);
+        assertThat(history).isEmpty();
+    }
+
+    @Test
+    void submitQuiz_whenAnswerSizeMismatch_throwsResponseStatusException() {
+        UUID userId = UUID.randomUUID();
+        String opts = "[{\"key\":\"A\",\"text\":\"Opt 1\",\"correct\":true}]";
+        QuizQuestion q1 = new QuizQuestion("q1", "mf-3", "A", "P1", 15, 50, 1, opts, "E1");
+
+        when(quizRepo.findByLessonId("mf-3")).thenReturn(List.of(q1));
+
+        assertThatThrownBy(() -> service.submitQuiz(userId, "mf-3", Collections.emptyList(), 50))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Submitted answers count does not match quiz size");
     }
 }
