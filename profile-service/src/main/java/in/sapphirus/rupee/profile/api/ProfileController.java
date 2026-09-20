@@ -30,7 +30,7 @@ public class ProfileController {
 
     public record BadgeView(String emoji, String title, String category) {}
 
-    public record SettingsUpdate(String language, Boolean dailyReminders) {}
+    public record SettingsUpdate(String language, String preferredLanguage, Boolean dailyReminders) {}
 
     @GetMapping("/me")
     public ProfileView me(@RequestParam(required = false) String name) {
@@ -49,11 +49,18 @@ public class ProfileController {
                 .toList();
     }
 
-    @PatchMapping("/me/settings")
+    @RequestMapping(value = "/me/settings", method = {RequestMethod.PATCH, RequestMethod.PUT, RequestMethod.POST})
     public ProfileView updateSettings(@RequestBody SettingsUpdate update) {
         Profile p = getOrCreate();
-        if (update.language() != null) p.setLanguage(update.language());
-        if (update.dailyReminders() != null) p.setDailyReminders(update.dailyReminders());
+        String targetLang = (update.language() != null && !update.language().isBlank())
+                ? update.language()
+                : update.preferredLanguage();
+        if (targetLang != null && !targetLang.isBlank()) {
+            p.setLanguage(targetLang);
+        }
+        if (update.dailyReminders() != null) {
+            p.setDailyReminders(update.dailyReminders());
+        }
         return view(profiles.save(p));
     }
 
