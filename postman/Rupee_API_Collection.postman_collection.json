@@ -1,0 +1,350 @@
+{
+  "info": {
+    "name": "Rupee API Collection - Direct URLs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth Service (/auth)",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"name\": \"John Doe\",\n  \"email\": \"user@example.com\",\n  \"password\": \"SecurePass123\",\n  \"confirmPassword\": \"SecurePass123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"password\": \"SecurePass123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/auth/refresh",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["auth", "refresh"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"your-refresh-token-here\"\n}" }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/auth/forgot-password",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["auth", "forgot-password"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/auth/verify-otp",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["auth", "verify-otp"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\"\n}" }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/auth/reset-password",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["auth", "reset-password"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"newPassword\": \"NewSecurePass123\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Learn Service (/learn)",
+      "item": [
+        {
+          "name": "Get All Lessons",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/learn/lessons",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["learn", "lessons"]
+            }
+          }
+        },
+        {
+          "name": "Get Lesson By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/learn/lessons/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["learn", "lessons", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Jargon Term",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/learn/jargon/Inflation",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["learn", "jargon", "Inflation"]
+            }
+          }
+        },
+        {
+          "name": "Get Daily Quiz",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/learn/quiz/daily",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["learn", "quiz", "daily"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Community Service (/community)",
+      "item": [
+        {
+          "name": "Get Community Feed",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/community/feed",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["community", "feed"]
+            }
+          }
+        },
+        {
+          "name": "Create Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/community/posts",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["community", "posts"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"Hello Rupee community!\",\n  \"tag\": \"#General\"\n}" }
+          }
+        },
+        {
+          "name": "Reply to Post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/community/posts/123e4567-e89b-12d3-a456-426614174000/replies",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["community", "posts", "123e4567-e89b-12d3-a456-426614174000", "replies"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"text\": \"Welcome to the platform!\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Portfolio Service (/portfolio)",
+      "item": [
+        {
+          "name": "Get My Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/portfolio/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["portfolio", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get My Holdings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/portfolio/me/holdings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["portfolio", "me", "holdings"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Practice Service (/practice)",
+      "item": [
+        {
+          "name": "Get All Stocks",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/practice/stocks",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["practice", "stocks"]
+            }
+          }
+        },
+        {
+          "name": "Get Stock By Symbol",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/practice/stocks/RELIANCE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["practice", "stocks", "RELIANCE"]
+            }
+          }
+        },
+        {
+          "name": "Place Practice Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/practice/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["practice", "orders"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"symbol\": \"RELIANCE\",\n  \"side\": \"BUY\",\n  \"shares\": 5,\n  \"orderType\": \"MARKET\"\n}" }
+          }
+        },
+        {
+          "name": "Get My Practice Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/practice/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["practice", "orders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile Service (/profile)",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/profile/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["profile", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get My Badges",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/profile/me/badges",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["profile", "me", "badges"]
+            }
+          }
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/profile/me/settings",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["profile", "me", "settings"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"language\": \"en\",\n  \"dailyReminders\": true\n}" }
+          }
+        }
+      ]
+    }
+  ]
+}
