@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;NON_KEYWORDS=VALUE;INIT=CREATE SCHEMA IF NOT EXISTS portfolio
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        default_schema: portfolio
+  flyway:
+    enabled: false
+
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+rupee:
+  jwt:
+    secret: "test-secret-key-must-be-at-least-256-bits-long-for-hmac-sha2!!"
+    issuer: rupee-auth
+
+razorpay:
+  key-id: rzp_test_placeholder
+  key-secret: placeholder_secret
+  webhook-secret: "test_webhook_secret"
+
+bse:
+  starmf:
+    base-url: http://localhost
+    user-id: stub
+    password: stub
+    member-code: stub
+    stub-mode: true
+

@@ -1,8 +1,13 @@
 spring:
   datasource:
-    url: postgresql://neondb_owner:npg_oXVnsfQD8lT0@ep-shy-frost-axq71kgr-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-    username:
-    password:
+    url: jdbc:postgresql://ep-shy-frost-axq71kgr-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_oXVnsfQD8lT0
+    hikari:
+      max-lifetime: 60000
+      idle-timeout: 30000
+      connection-timeout: 20000
+      keepalive-time: 30000
 
 eureka:
   client:
@@ -14,4 +19,4 @@ eureka:
 
 rupee:
   jwt:
-    secret: dev-secret-key
+    secret: local-dev-only-change-me-to-a-strong-256-bit-secret-value!!

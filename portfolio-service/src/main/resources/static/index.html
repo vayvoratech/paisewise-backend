@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PaiseWise SIP & Portfolio Live Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --bg-card-hover: rgba(26, 36, 56, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.3);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.4);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.3);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #06b6d4;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 15% 15%, #131b2e 0%, var(--bg-dark) 55%), #090d16;
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 24px 20px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 22px;
+      color: white;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .brand-info h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #ffffff, #c7d2fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-info p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success-glow);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    @media (min-width: 1024px) {
+      .grid-layout {
+        grid-template-columns: 1.15fr 0.85fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-accent);
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .card-title h2 {
+      font-size: 17px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title span.count {
+      font-size: 12px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Simulation Control Buttons */
+    .sim-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: white;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      box-shadow: 0 0 15px var(--success-glow);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* SIP Card / Table */
+    .sip-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 540px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .sip-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .sip-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(99, 102, 241, 0.25);
+    }
+
+    .sip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .sip-scheme {
+      font-weight: 600;
+      font-size: 15px;
+      color: #ffffff;
+    }
+
+    .sip-amount {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #34d399;
+    }
+
+    .sip-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .sip-details span strong {
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sip-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .sip-actions button {
+      padding: 5px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+
+    /* Status Pill */
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .pill-ACTIVE { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .pill-PENDING_MANDATE { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .pill-PAUSED { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .pill-CANCELLED { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* Webhook Logs */
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 540px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding-right: 4px;
+    }
+
+    .log-item {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .log-event {
+      color: #67e8f9;
+      font-weight: 600;
+    }
+
+    .log-time {
+      color: var(--text-dim);
+      font-size: 11px;
+    }
+
+    .log-msg {
+      color: var(--text-muted);
+      word-break: break-all;
+      font-size: 11px;
+    }
+
+    /* Output Console */
+    .console-box {
+      margin-top: 24px;
+      background: #05070c;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #a7f3d0;
+      max-height: 220px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="brand-logo">₹</div>
+        <div class="brand-info">
+          <h1>PaiseWise SIP & AutoPay Engine</h1>
+          <p>Live Backend Preview • Spring Boot 3 + Neon PostgreSQL + Eureka</p>
+        </div>
+      </div>
+      <div class="status-badges">
+        <div class="badge">
+          <span class="dot"></span>
+          <span>Eureka :8761</span>
+        </div>
+        <div class="badge">
+          <span class="dot"></span>
+          <span>Portfolio :8085</span>
+        </div>
+        <div class="badge">
+          <span class="dot"></span>
+          <span>Neon PostgreSQL</span>
+        </div>
+        <a href="http://localhost:8761" target="_blank" class="badge btn-outline" style="text-decoration:none; cursor:pointer;">
+          ↗ Open Eureka Dashboard
+        </a>
+      </div>
+    </header>
+
+    <!-- Simulation Toolbar -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-title">
+        <h2>⚡ 1-Click Razorpay Webhook & AutoPay Simulator</h2>
+        <span class="count">LIVE DISPATCH</span>
+      </div>
+      <div class="sim-bar">
+        <button class="btn btn-primary" onclick="seedSip()">
+          <span>➕</span> Seed New Demo SIP
+        </button>
+        <button class="btn btn-success" onclick="simulateWebhook('mandate.approved')">
+          <span>🟢</span> mandate.approved (Activate SIP)
+        </button>
+        <button class="btn btn-primary" style="background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);" onclick="simulateWebhook('payment.captured')">
+          <span>⚡</span> payment.captured (Trigger BSE)
+        </button>
+        <button class="btn btn-warning" onclick="simulateWebhook('payment.failed')">
+          <span>⚠️</span> payment.failed (Test Auto-Pause)
+        </button>
+        <button class="btn btn-danger" onclick="simulateWebhook('subscription.cancelled')">
+          <span>🛑</span> subscription.cancelled (Cancel SIP)
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid-layout">
+      <!-- Active SIPs -->
+      <div class="card">
+        <div class="card-title">
+          <h2>📊 Mutual Fund SIP Mandates</h2>
+          <span class="count" id="sipCountBadge">0 SIPs</span>
+        </div>
+        <div class="sip-list" id="sipList">
+          <div class="empty-state">Loading SIPs from Neon PostgreSQL...</div>
+        </div>
+      </div>
+
+      <!-- Live Webhook Audit Log -->
+      <div class="card">
+        <div class="card-title">
+          <h2>📜 Razorpay Audit Log (Idempotent DB)</h2>
+          <span class="count" id="auditCountBadge">0 Events</span>
+        </div>
+        <div class="log-list" id="logList">
+          <div class="empty-state">No webhook events logged yet. Trigger one above!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Execution Console -->
+    <div class="card" style="margin-top: 24px;">
+      <div class="card-title">
+        <h2>💻 Terminal Response Log</h2>
+        <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="clearConsole()">Clear</button>
+      </div>
+      <div class="console-box" id="consoleBox">// Live HTTP response and webhook HMAC execution output will stream here...</div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api/preview';
+
+    function logToConsole(title, data) {
+      const box = document.getElementById('consoleBox');
+      const time = new Date().toLocaleTimeString();
+      const content = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+      box.textContent = `[${time}] ${title}\n${content}\n\n` + box.textContent;
+    }
+
+    function clearConsole() {
+      document.getElementById('consoleBox').textContent = '// Console cleared.';
+    }
+
+    async function loadSips() {
+      try {
+        const res = await fetch(`${API_BASE}/sips`);
+        const sips = await res.json();
+        const list = document.getElementById('sipList');
+        document.getElementById('sipCountBadge').textContent = `${sips.length} SIPs`;
+
+        if (sips.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <p style="margin-bottom:12px;">No active SIPs found in DB.</p>
+              <button class="btn btn-primary" onclick="seedSip()">➕ Create Demo SIP</button>
+            </div>`;
+          return;
+        }
+
+        list.innerHTML = sips.map(sip => `
+          <div class="sip-item">
+            <div class="sip-header">
+              <div>
+                <div class="sip-scheme">${sip.schemeCode}</div>
+                <div style="font-size: 11px; color: var(--text-dim); margin-top:2px;">ID: ${sip.id}</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="sip-amount">₹${Number(sip.amount).toLocaleString('en-IN')}/mo</div>
+                <span class="pill pill-${sip.status}">${sip.status}</span>
+              </div>
+            </div>
+            <div class="sip-details">
+              <span>Mandate: <strong>${sip.upiMandateId || '—'}</strong></span>
+              <span>Sub ID: <strong>${sip.razorpaySubscriptionId || '—'}</strong></span>
+              <span>Next Debit: <strong>${sip.nextDebitDate || '—'}</strong></span>
+              <span>Done/Fail: <strong>${sip.installmentsDone || 0} / ${sip.installmentsFailed || 0}</strong></span>
+            </div>
+            <div class="sip-actions">
+              ${sip.status === 'ACTIVE' ? `
+                <button class="btn btn-warning" onclick="pauseSip('${sip.id}')">Pause</button>
+                <button class="btn btn-danger" onclick="cancelSip('${sip.id}')">Cancel</button>
+              ` : ''}
+              ${sip.status === 'PAUSED' ? `
+                <button class="btn btn-success" onclick="resumeSip('${sip.id}')">Resume</button>
+                <button class="btn btn-danger" onclick="cancelSip('${sip.id}')">Cancel</button>
+              ` : ''}
+              ${sip.status === 'PENDING_MANDATE' ? `
+                <button class="btn btn-success" onclick="simulateWebhook('mandate.approved', '${sip.razorpaySubscriptionId}', '${sip.upiMandateId}')">Approve Mandate</button>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        logToConsole('Error loading SIPs', err.message);
+      }
+    }
+
+    async function loadAuditLog() {
+      try {
+        const res = await fetch(`${API_BASE}/webhook-events`);
+        const events = await res.json();
+        const list = document.getElementById('logList');
+        document.getElementById('auditCountBadge').textContent = `${events.length} Events`;
+
+        if (events.length === 0) {
+          list.innerHTML = `<div class="empty-state">No events recorded yet.</div>`;
+          return;
+        }
+
+        list.innerHTML = events.map(e => `
+          <div class="log-item">
+            <div class="log-head">
+              <span class="log-event">${e.eventType}</span>
+              <span class="pill pill-${e.status === 'OK' ? 'ACTIVE' : 'CANCELLED'}">${e.status}</span>
+            </div>
+            <div class="log-time">${new Date(e.processedAt).toLocaleString()} • Event: ${e.eventId}</div>
+            <div class="log-msg">SIP: ${e.sipId || 'N/A'}${e.errorMessage ? ` • Err: ${e.errorMessage}` : ''}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        logToConsole('Error loading audit log', err.message);
+      }
+    }
+
+    async function seedSip() {
+      try {
+        logToConsole('Seeding new demo SIP...', 'POST /api/preview/sips/seed');
+        const res = await fetch(`${API_BASE}/sips/seed`, { method: 'POST' });
+        const data = await res.json();
+        logToConsole('SIP Created in Neon DB', data);
+        await refreshAll();
+      } catch (err) {
+        logToConsole('Error creating SIP', err.message);
+      }
+    }
+
+    async function pauseSip(id) {
+      try {
+        const res = await fetch(`${API_BASE}/sips/${id}/pause`, { method: 'POST' });
+        const data = await res.json();
+        logToConsole(`SIP ${id} Paused`, data);
+        await refreshAll();
+      } catch (err) {
+        logToConsole('Error pausing SIP', err.message);
+      }
+    }
+
+    async function resumeSip(id) {
+      try {
+        const res = await fetch(`${API_BASE}/sips/${id}/resume`, { method: 'POST' });
+        const data = await res.json();
+        logToConsole(`SIP ${id} Resumed`, data);
+        await refreshAll();
+      } catch (err) {
+        logToConsole('Error resuming SIP', err.message);
+      }
+    }
+
+    async function cancelSip(id) {
+      try {
+        const res = await fetch(`${API_BASE}/sips/${id}/cancel`, { method: 'POST' });
+        const data = await res.json();
+        logToConsole(`SIP ${id} Cancelled`, data);
+        await refreshAll();
+      } catch (err) {
+        logToConsole('Error cancelling SIP', err.message);
+      }
+    }
+
+    async function simulateWebhook(eventType, subId, mandateId) {
+      try {
+        logToConsole(`Simulating Razorpay webhook: ${eventType}...`, { eventType, subId, mandateId });
+        let url = `${API_BASE}/simulate-webhook?eventType=${encodeURIComponent(eventType)}`;
+        if (subId) url += `&subId=${encodeURIComponent(subId)}`;
+        if (mandateId) url += `&mandateId=${encodeURIComponent(mandateId)}`;
+
+        const res = await fetch(url, { method: 'POST' });
+        const data = await res.json();
+        logToConsole(`Webhook Dispatched & Processed [HTTP ${data.responseStatus}]`, data);
+        await refreshAll();
+      } catch (err) {
+        logToConsole('Error simulating webhook', err.message);
+      }
+    }
+
+    async function refreshAll() {
+      await Promise.all([loadSips(), loadAuditLog()]);
+    }
+
+    // Initial load
+    refreshAll();
+    // Auto-poll every 5s
+    setInterval(refreshAll, 5000);
+  </script>
+</body>
+</html>
