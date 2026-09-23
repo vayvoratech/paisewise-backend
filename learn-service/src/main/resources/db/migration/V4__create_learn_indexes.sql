@@ -1,0 +1,50 @@
+-- V4__create_learn_indexes.sql
+ALTER TABLE learn.lessons DROP CONSTRAINT IF EXISTS lessons_prerequisite_lesson_id_fkey;
+ALTER TABLE learn.lessons ALTER COLUMN prerequisite_lesson_id TYPE VARCHAR(255) USING prerequisite_lesson_id::text;
+ALTER TABLE learn.lessons ALTER COLUMN id TYPE VARCHAR(255) USING id::text;
+
+ALTER TABLE learn.lessons
+    ADD COLUMN IF NOT EXISTS title VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS chapter VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS chapter_no INTEGER DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS index INTEGER DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS quiz_xp INTEGER DEFAULT 100,
+    ADD COLUMN IF NOT EXISTS total INTEGER DEFAULT 10,
+    ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 100,
+    ADD COLUMN IF NOT EXISTS difficulty VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS description VARCHAR(1000),
+    ADD COLUMN IF NOT EXISTS duration_minutes INTEGER,
+    ADD COLUMN IF NOT EXISTS jargon_words_json VARCHAR(1000),
+    ADD COLUMN IF NOT EXISTS segments_json VARCHAR(4000);
+
+CREATE INDEX IF NOT EXISTS idx_lessons_difficulty
+    ON learn.lessons(difficulty);
+
+CREATE INDEX IF NOT EXISTS idx_user_lesson_progress_user_id
+    ON learn.user_lesson_progress(user_id);
+
+INSERT INTO learn.lessons
+    (
+        id,
+        chapter_no,
+        index,
+        quiz_xp,
+        total,
+        title,
+        description,
+        duration_minutes,
+        xp_reward,
+        difficulty
+    )
+VALUES
+    ('les_00000000-0000-0000-0000-000000000001', 1, 1, 100, 10, 'Introduction to Stock Markets', 'Learn the absolute basics of how stock exchanges work and what shares represent.', 10, 100, 'BEGINNER'),
+    ('les_00000000-0000-0000-0000-000000000002', 1, 2, 150, 15, 'Understanding Market vs Limit Orders', 'Deep dive into execution types and how to control your entry price.', 15, 150, 'BEGINNER'),
+    ('les_00000000-0000-0000-0000-000000000003', 1, 3, 200, 20, 'Reading Candlestick Charts', 'Recognize common bullish and bearish candlestick patterns.', 20, 200, 'INTERMEDIATE'),
+    ('les_00000000-0000-0000-0000-000000000004', 1, 4, 250, 25, 'Risk Management & Position Sizing', 'Calculate risk per trade to protect your capital effectively.', 25, 250, 'INTERMEDIATE'),
+    ('les_00000000-0000-0000-0000-000000000005', 1, 5, 300, 30, 'Introduction to Derivatives (F&O)', 'Understand Futures and Options contracts and their primary use cases.', 30, 300, 'ADVANCED'),
+    ('les_00000000-0000-0000-0000-000000000006', 1, 6, 200, 20, 'P/E Ratios and Fundamental Analysis', 'Evaluate company financial health using valuation metrics.', 20, 200, 'INTERMEDIATE'),
+    ('les_00000000-0000-0000-0000-000000000007', 1, 7, 150, 15, 'Stop Loss Strategies', 'Protect open positions against volatile market reversals.', 15, 150, 'BEGINNER'),
+    ('les_00000000-0000-0000-0000-000000000008', 1, 8, 200, 20, 'Sector Rotation and Trends', 'Learn how capital moves across different economic sectors.', 20, 200, 'INTERMEDIATE'),
+    ('les_00000000-0000-0000-0000-000000000009', 1, 9, 150, 15, 'Portfolio Diversification', 'Avoid concentration risk by balancing asset allocations properly.', 15, 150, 'BEGINNER'),
+    ('les_00000000-0000-0000-0000-000000000010', 1, 10, 300, 25, 'Trading Psychology and Discipline', 'Master your emotions to prevent impulsive decision-making.', 25, 300, 'ADVANCED')
+ON CONFLICT (id) DO NOTHING;
