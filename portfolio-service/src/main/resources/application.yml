@@ -49,3 +49,18 @@ management:
     web:
       exposure:
         include: health,info
+
+# ── Razorpay UPI AutoPay / Subscription config ──────────────────────────────
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:rzp_test_placeholder}
+  key-secret: ${RAZORPAY_KEY_SECRET:placeholder_secret}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:placeholder_webhook_secret}
+
+# ── BSE StarMF API (stub in dev; set STARMF_BASE_URL in prod) ───────────────
+bse:
+  starmf:
+    base-url: ${STARMF_BASE_URL:https://bsestarmf.in/BseStarMFWebService/BseStarMfWebService.asmx}
+    user-id: ${STARMF_USER_ID:stub_user}
+    password: ${STARMF_PASSWORD:stub_password}
+    member-code: ${STARMF_MEMBER_CODE:stub_member}
+    stub-mode: ${STARMF_STUB_MODE:true}

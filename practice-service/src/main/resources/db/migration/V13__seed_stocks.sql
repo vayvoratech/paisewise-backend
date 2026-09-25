@@ -3,6 +3,24 @@
 -- Also ensures RELIANCE, TCS, INFY exist in practice.symbols (FK target for orders).
 -- Safe to run multiple times via ON CONFLICT DO NOTHING.
 
+CREATE SCHEMA IF NOT EXISTS practice;
+
+CREATE TABLE IF NOT EXISTS practice.symbols (
+    symbol VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    exchange VARCHAR(50) NOT NULL DEFAULT 'NSE'
+);
+
+CREATE TABLE IF NOT EXISTS practice.stocks (
+    symbol character varying(255) NOT NULL,
+    change_pct double precision NOT NULL,
+    emoji character varying(255),
+    name character varying(255),
+    price double precision NOT NULL,
+    trend_json character varying(1000),
+    CONSTRAINT stocks_pkey PRIMARY KEY (symbol)
+);
+
 INSERT INTO practice.symbols (symbol, name, exchange) VALUES
     ('RELIANCE', 'Reliance Industries Limited', 'NSE'),
     ('TCS', 'Tata Consultancy Services Limited', 'NSE'),

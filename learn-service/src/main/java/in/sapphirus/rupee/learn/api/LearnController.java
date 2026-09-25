@@ -46,7 +46,11 @@ public class LearnController {
 
     public record ProgressRequest(String lessonId) {}
 
-    public record ProgressResponse(double progressPercent) {}
+    public record ProgressResponse(double progressPercent, String completedLessonId) {
+        public ProgressResponse(double progressPercent) {
+            this(progressPercent, null);
+        }
+    }
 
     public record UserProgressResponse(double progressPercent, List<String> completedLessonIds) {}
 
@@ -62,10 +66,29 @@ public class LearnController {
         return lessonView(learnService.getLesson(id));
     }
 
+    public record AiJargonRequest(String term, String language) {}
+    public record AiJargonResponse(String term, String language, String explanation) {}
+
     @GetMapping("/jargon/{term}")
-    public JargonView jargon(@PathVariable String term) {
-        JargonTerm t = learnService.getJargonTerm(term);
-        return new JargonView(t.getTerm(), t.getDefinition(), t.getAnalogy(), t.getExample());
+    public JargonView jargon(@PathVariable String term, @RequestParam(required = false, defaultValue = "en") String language) {
+        try {
+            JargonTerm t = learnService.getJargonTerm(term);
+            return new JargonView(t.getTerm(), t.getDefinition(), t.getAnalogy(), t.getExample());
+        } catch (Exception e) {
+            String explanation = learnService.getAiJargonExplanation(term, language);
+            return new JargonView(term, explanation, "", "");
+        }
+    }
+
+    @RequestMapping(value = {"/jargon/ai", "/ai/jargon", "/api/jargon/ai"}, method = {RequestMethod.GET, RequestMethod.POST})
+    public AiJargonResponse aiJargon(
+            @RequestParam(required = false) String term,
+            @RequestParam(required = false, defaultValue = "en") String language,
+            @RequestBody(required = false) AiJargonRequest req) {
+        String targetTerm = (term != null && !term.isBlank()) ? term : (req != null ? req.term() : "SIP");
+        String targetLang = (language != null && !language.isBlank() && !"en".equalsIgnoreCase(language)) ? language : (req != null && req.language() != null ? req.language() : language);
+        String explanation = learnService.getAiJargonExplanation(targetTerm, targetLang);
+        return new AiJargonResponse(targetTerm, targetLang, explanation);
     }
 
     @GetMapping("/quiz/daily")
@@ -76,20 +99,20 @@ public class LearnController {
                 .toList();
     }
 
-    @PostMapping("/progress")
-    public ProgressResponse updateProgress(@RequestBody ProgressRequest req) {
+    @PostMapping("/lessons/{lessonId}/complete")
+    public ProgressResponse completeLessonByPath(@PathVariable String lessonId) {
         UUID userId = UUID.fromString(CurrentUser.requireId());
-        learnService.completeLesson(userId, req.lessonId());
+        learnService.completeLesson(userId, lessonId);
         double percent = learnService.getLessonProgress(userId);
-        return new ProgressResponse(percent);
+        return new ProgressResponse(percent, lessonId);
     }
 
-    @PostMapping("/complete")
-    public ProgressResponse completeLesson(@RequestBody ProgressRequest req) {
+    @PostMapping({"/progress", "/complete"})
+    public ProgressResponse completeLessonByBody(@RequestBody ProgressRequest req) {
         UUID userId = UUID.fromString(CurrentUser.requireId());
         learnService.completeLesson(userId, req.lessonId());
         double percent = learnService.getLessonProgress(userId);
-        return new ProgressResponse(percent);
+        return new ProgressResponse(percent, req.lessonId());
     }
 
     @PostMapping("/viewed")

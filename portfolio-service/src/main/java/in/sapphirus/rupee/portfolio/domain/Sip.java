@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+
 @Entity
 @Table(name = "sips")
 public class Sip {
@@ -37,6 +38,13 @@ public class Sip {
     @Column(name = "upi_mandate_id", length = 100)
     private String upiMandateId;
 
+    /**
+     * UPI mandate lifecycle status returned by Razorpay:
+     * CREATED | APPROVED | REJECTED | PAUSED | CANCELLED | COMPLETED
+     */
+    @Column(name = "upi_mandate_status", length = 30)
+    private String upiMandateStatus;
+
     @Column(name = "razorpay_subscription_id", length = 100)
     private String razorpaySubscriptionId;
 
@@ -64,6 +72,20 @@ public class Sip {
     @Column(name = "total_units")
     private double totalUnits = 0.0;
 
+    /** Timestamp when SIP was paused; null if never paused. */
+    @Column(name = "paused_at")
+    private Instant pausedAt;
+
+    @Column(name = "paused_reason", columnDefinition = "TEXT")
+    private String pausedReason;
+
+    /** Timestamp when SIP was cancelled; null if not cancelled. */
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancelled_reason", columnDefinition = "TEXT")
+    private String cancelledReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -87,6 +109,7 @@ public class Sip {
     public int getDebitDay() { return debitDay; }
     public String getStatus() { return status; }
     public String getUpiMandateId() { return upiMandateId; }
+    public String getUpiMandateStatus() { return upiMandateStatus; }
     public String getRazorpaySubscriptionId() { return razorpaySubscriptionId; }
     public LocalDate getStartDate() { return startDate; }
     public LocalDate getEndDate() { return endDate; }
@@ -104,7 +127,20 @@ public class Sip {
     public void setDebitDay(int day) { this.debitDay = day; }
     public void setStatus(String status) { this.status = status; }
     public void setUpiMandateId(String upiMandateId) { this.upiMandateId = upiMandateId; }
+    public void setUpiMandateStatus(String status) { this.upiMandateStatus = status; }
     public void setRazorpaySubscriptionId(String subId) { this.razorpaySubscriptionId = subId; }
+
+    public Instant getPausedAt() { return pausedAt; }
+    public void setPausedAt(Instant pausedAt) { this.pausedAt = pausedAt; }
+
+    public String getPausedReason() { return pausedReason; }
+    public void setPausedReason(String pausedReason) { this.pausedReason = pausedReason; }
+
+    public Instant getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
+
+    public String getCancelledReason() { return cancelledReason; }
+    public void setCancelledReason(String cancelledReason) { this.cancelledReason = cancelledReason; }
     public void setStartDate(LocalDate date) { this.startDate = date; }
     public void setEndDate(LocalDate date) { this.endDate = date; }
     public void setNextDebitDate(LocalDate date) { this.nextDebitDate = date; }
