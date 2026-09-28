@@ -15,4 +15,4 @@ eureka:
 
 rupee:
   jwt:
-    secret: dev-secret-key
+    secret: local-dev-only-change-me-to-a-strong-256-bit-secret-value!!

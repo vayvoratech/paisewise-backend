@@ -69,10 +69,6 @@ spring:
                 redis-rate-limiter.replenishRate: 10
                 redis-rate-limiter.burstCapacity: 20
                 key-resolver: "#{@userKeyResolver}"
-            - name: CircuitBreaker
-              args:
-                name: learnServiceCB
-                fallbackUri: forward:/fallback/learn
             - name: Retry
               args:
                 retries: 3
@@ -197,4 +193,16 @@ rupee:
   jwt:
     secret: ${JWT_SECRET:local-dev-only-change-me-to-a-strong-256-bit-secret-value!!}
     issuer: rupee-auth
+
+resilience4j:
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 25s
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
 
