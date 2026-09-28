@@ -98,15 +98,31 @@ interface StockView {
   trend: string;        // Raw JSON string
 }
 
+interface PositionView {
+  symbol: string;
+  quantity: number;
+  reservedQuantity: number;
+}
+
+interface AccountView {
+  balance: number;
+  reservedBalance: number;
+  positions: PositionView[];
+}
+
 interface PlaceOrderRequest {
   symbol: string;
-  side: string;         // e.g. "BUY", "SELL"
+  side: string;         // "BUY" | "SELL"
   shares: number;
-  orderType: string;    // e.g. "MARKET", "LIMIT"
+  orderType: string;    // "MARKET" | "LIMIT"
+  price?: number;       // required for LIMIT orders
+  clientOrderId?: string;
 }
 
 interface OrderReceipt {
+  orderId: string;
   symbol: string;
+  side: string;
   shares: number;
   pricePerShare: number;
   totalPaid: number;

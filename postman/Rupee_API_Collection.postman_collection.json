@@ -297,6 +297,60 @@
               "path": ["practice", "orders"]
             }
           }
+        },
+        {
+          "name": "Get Paper Account Details",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/practice/account",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["practice", "account"]
+            }
+          }
+        },
+        {
+          "name": "Reset Paper Account (30-day limit)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8080/practice/account/reset",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["practice", "account", "reset"]
+            }
+          }
+        },
+        {
+          "name": "Place Limit Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "http://localhost:8080/practice/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["practice", "orders"]
+            },
+            "body": { "mode": "raw", "raw": "{\n  \"symbol\": \"RELIANCE\",\n  \"side\": \"BUY\",\n  \"shares\": 5,\n  \"orderType\": \"LIMIT\",\n  \"price\": 2450.00\n}" }
+          }
+        },
+        {
+          "name": "Cancel Practice Order",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "http://localhost:8080/practice/orders/{{orderId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["practice", "orders", "{{orderId}}"]
+            }
+          }
         }
       ]
     },

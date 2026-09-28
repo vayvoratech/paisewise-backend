@@ -85,11 +85,19 @@ public class PracticeController {
     @GetMapping("/account")
     public AccountView account() {
         UUID userId = UUID.fromString(CurrentUser.requireId());
-        PaperAccount acct = paperAccounts.findById(userId)
-                .orElseGet(() -> {
-                    PaperAccount fresh = new PaperAccount(userId);
-                    return paperAccounts.save(fresh);
-                });
+        PaperAccount acct = paperOrderService.getOrCreateAccount(userId);
+
+        List<PositionView> positions = paperPositions.findByUserId(userId).stream()
+                .map(p -> new PositionView(p.getSymbol(), p.getQuantity(), p.getReservedQuantity()))
+                .toList();
+
+        return new AccountView(acct.getBalance(), acct.getReservedBalance(), positions);
+    }
+
+    @PostMapping("/account/reset")
+    public AccountView resetAccount() {
+        UUID userId = UUID.fromString(CurrentUser.requireId());
+        PaperAccount acct = paperOrderService.resetAccount(userId);
 
         List<PositionView> positions = paperPositions.findByUserId(userId).stream()
                 .map(p -> new PositionView(p.getSymbol(), p.getQuantity(), p.getReservedQuantity()))
