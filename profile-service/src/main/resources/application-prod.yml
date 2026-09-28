@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://prod-db-server:5432/rupee_db
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://prod-eureka:8761/eureka/
+
+  instance:
+    hostname: prod-profile-service
+
+rupee:
+  jwt:
+    secret: ${JWT_SECRET}
