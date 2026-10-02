@@ -99,7 +99,7 @@ spring:
         - id: portfolio-service
           uri: lb://portfolio-service
           predicates:
-            - Path=/portfolio/**
+            - Path=/portfolio/**, /sip/**, /funds/**, /mf/**
           filters:
             - name: JwtValidation
             - name: RequestRateLimiter

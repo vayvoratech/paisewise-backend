@@ -42,6 +42,9 @@ public class MfInvestment {
     @Column(name = "bse_order_id", length = 50)
     private String bseOrderId;
 
+    @Column(name = "bse_remarks", columnDefinition = "TEXT")
+    private String bseRemarks;
+
     @Column(name = "transaction_date", nullable = false)
     private Instant transactionDate = Instant.now();
 
@@ -54,7 +57,7 @@ public class MfInvestment {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
-    protected MfInvestment() {}
+    public MfInvestment() {}
 
     public MfInvestment(UUID userId, String schemeCode, double amount) {
         this.userId = userId;
@@ -73,11 +76,15 @@ public class MfInvestment {
     public Double getUnitsAllotted() { return unitsAllotted; }
     public String getFolioNumber() { return folioNumber; }
     public String getBseOrderId() { return bseOrderId; }
+    public String getBseRemarks() { return bseRemarks; }
     public Instant getTransactionDate() { return transactionDate; }
     public Instant getAllotmentDate() { return allotmentDate; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
+    public void setUserId(UUID userId) { this.userId = userId; }
+    public void setSchemeCode(String schemeCode) { this.schemeCode = schemeCode; }
+    public void setAmount(double amount) { this.amount = amount; }
     public void setSipId(UUID sipId) { this.sipId = sipId; }
     public void setTransactionType(String type) { this.transactionType = type; }
     public void setStatus(String status) { this.status = status; }
@@ -85,6 +92,8 @@ public class MfInvestment {
     public void setUnitsAllotted(Double units) { this.unitsAllotted = units; }
     public void setFolioNumber(String folio) { this.folioNumber = folio; }
     public void setBseOrderId(String orderId) { this.bseOrderId = orderId; }
+    public void setBseRemarks(String remarks) { this.bseRemarks = remarks; }
+    public void setTransactionDate(Instant date) { this.transactionDate = date; }
     public void setAllotmentDate(Instant date) { this.allotmentDate = date; }
     public void setUpdatedAt(Instant val) { this.updatedAt = val; }
 }
