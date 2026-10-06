@@ -9,9 +9,9 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/rupee_db}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:Tony}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/rupee_db}
+    username: ${DB_USER:rupee}
+    password: ${DB_PASSWORD:rupee_local}
     driver-class-name: org.postgresql.Driver
   jpa:
     show-sql: true
