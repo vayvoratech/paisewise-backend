@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: postgresql://neondb_owner:npg_oXVnsfQD8lT0@ep-shy-frost-axq71kgr-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    username:
+    password:
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+  instance:
+    hostname: localhost
+
+rupee:
+  jwt:
+    secret: dev-secret-key

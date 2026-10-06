@@ -1,0 +1,88 @@
+# Local development infrastructure: one PostgreSQL database PER microservice
+# (database-per-service pattern). Start with: docker compose up -d
+#
+# SECURITY: these are LOCAL dev credentials only. Production credentials must
+# come from a secrets manager / environment, never from this file.
+services:
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: rupee
+      POSTGRES_PASSWORD: rupee_local
+    ports: ["5433:5432"]
+    volumes: ["auth-data:/var/lib/postgresql/data"]
+
+  profile-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: profile
+      POSTGRES_USER: rupee
+      POSTGRES_PASSWORD: rupee_local
+    ports: ["5434:5432"]
+    volumes: ["profile-data:/var/lib/postgresql/data"]
+
+  learn-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: learn
+      POSTGRES_USER: rupee
+      POSTGRES_PASSWORD: rupee_local
+    ports: ["5435:5432"]
+    volumes: ["learn-data:/var/lib/postgresql/data"]
+
+  practice-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: practice
+      POSTGRES_USER: rupee
+      POSTGRES_PASSWORD: rupee_local
+    ports: ["5436:5432"]
+    volumes: ["practice-data:/var/lib/postgresql/data"]
+
+  portfolio-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: portfolio
+      POSTGRES_USER: rupee
+      POSTGRES_PASSWORD: rupee_local
+    ports: ["5437:5432"]
+    volumes: ["portfolio-data:/var/lib/postgresql/data"]
+
+  community-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: community
+      POSTGRES_USER: rupee
+      POSTGRES_PASSWORD: rupee_local
+    ports: ["5438:5432"]
+    volumes: ["community-data:/var/lib/postgresql/data"]
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+volumes:
+  auth-data:
+  profile-data:
+  learn-data:
+  practice-data:
+  portfolio-data:
+  community-data:
