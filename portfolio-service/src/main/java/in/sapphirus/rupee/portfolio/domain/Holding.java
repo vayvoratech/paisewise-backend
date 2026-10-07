@@ -95,9 +95,21 @@ public class Holding {
     public Instant getUpdatedAt() { return updatedAt; }
     public String getNote() { return note; }
 
+    public Holding(UUID userId, String symbol, int quantity, double avgPrice, double totalInvested, String product, boolean isPaper) {
+        this.userId = userId;
+        this.symbol = symbol;
+        this.quantity = quantity;
+        this.avgPrice = avgPrice;
+        this.totalInvested = totalInvested;
+        this.product = product != null ? product : "CNC";
+        this.isPaper = isPaper;
+        this.createdAtTimestamp();
+    }
+
     public void setQuantity(int quantity) { this.quantity = quantity; }
     public void setShares(int shares) { this.quantity = shares; }
     public void setAvgPrice(double avgPrice) { this.avgPrice = avgPrice; }
+    public void setAvgCost(BigDecimal avgCost) { this.avgPrice = avgCost != null ? avgCost.doubleValue() : 0.0; }
     public void setCurrentPrice(double currentPrice) { this.currentPrice = currentPrice; }
     public void setTotalInvested(double totalInvested) { this.totalInvested = totalInvested; }
     public void setProduct(String product) { this.product = product; }

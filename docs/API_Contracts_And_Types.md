@@ -156,3 +156,113 @@ interface SettingsUpdate {
   language?: string;
   dailyReminders?: boolean;
 }
+
+## 7. Mutual Funds & BSE StarMF (`/portfolio/funds`, `/funds`, `/portfolio/mf`)
+```typescript
+interface SchemeSummaryView {
+  schemeCode: string;
+  isin: string;
+  schemeName: string;
+  amcName: string;
+  category: string;
+  subCategory?: string;
+  riskLevel: string;
+  nav: number;
+  navDate: string;
+  minSipAmount: number;
+  minLumpsum: number;
+  returns1y?: number;
+  returns3y?: number;
+  returns5y?: number;
+  expenseRatio?: number;
+  fundSizeCr?: number;
+  isTaxSaver: boolean;
+  bseSchemeCode?: string;
+}
+
+interface RecommendationRequest {
+  riskAppetite?: "LOW" | "MODERATE" | "HIGH" | "VERY_HIGH";
+  goal?: "WEALTH_CREATION" | "TAX_SAVING" | "RETIREMENT" | "EMERGENCY_FUND" | "SHORT_TERM";
+  horizonYears?: number;
+  monthlyBudget?: number;
+  categoryPreference?: string;
+  language?: "en" | "hi";
+}
+
+interface RecommendedFundView extends SchemeSummaryView {
+  aiScore: number;
+  matchRating: "TOP_PICK" | "STRONG_MATCH" | "SUITABLE";
+  aiReasonEn: string;
+  aiReasonHi: string;
+  keyHighlights: string[];
+}
+
+interface RecommendationResponse {
+  profileSummary: string;
+  recommendedStrategy: string;
+  recommendations: RecommendedFundView[];
+  assetAllocation: Record<string, number>;
+}
+
+interface LumpsumOrderRequest {
+  schemeCode: string;
+  amount: number;
+  folioNumber?: string;
+}
+
+interface RedemptionOrderRequest {
+  schemeCode: string;
+  folioNumber?: string;
+  amount?: number;
+  units?: number;
+  allUnits: boolean;
+}
+
+interface SwitchOrderRequest {
+  fromSchemeCode: string;
+  toSchemeCode: string;
+  folioNumber?: string;
+  amount?: number;
+  units?: number;
+}
+
+interface MfOrderReceipt {
+  investmentId: string;
+  userId: string;
+  schemeCode: string;
+  schemeName: string;
+  transactionType: "PURCHASE" | "REDEMPTION" | "SIP" | "SWITCH_IN" | "SWITCH_OUT";
+  status: "PENDING" | "SUBMITTED" | "ALLOTTED" | "REJECTED" | "CANCELLED";
+  amount: number;
+  unitsAllotted?: number;
+  navApplied?: number;
+  folioNumber?: string;
+  bseOrderId?: string;
+  message: string;
+  transactionDate: string;
+}
+
+interface UserMfHoldingItem {
+  schemeCode: string;
+  schemeName: string;
+  amcName: string;
+  category: string;
+  totalUnits: number;
+  investedAmount: number;
+  currentNav: number;
+  currentValue: number;
+  absoluteGain: number;
+  percentageGain: number;
+  folioNumber: string;
+}
+
+interface UserMfPortfolioSummary {
+  totalInvested: number;
+  totalCurrentValue: number;
+  totalGainAbs: number;
+  totalGainPct: number;
+  totalSchemesCount: number;
+  holdings: UserMfHoldingItem[];
+  recentTransactions: any[];
+}
+```
