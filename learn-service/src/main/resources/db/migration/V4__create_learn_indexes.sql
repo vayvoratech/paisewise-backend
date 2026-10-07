@@ -1,4 +1,22 @@
 -- V4__create_learn_indexes.sql
+ALTER TABLE learn.lessons DROP CONSTRAINT IF EXISTS lessons_prerequisite_lesson_id_fkey;
+ALTER TABLE learn.lessons ALTER COLUMN prerequisite_lesson_id TYPE VARCHAR(255) USING prerequisite_lesson_id::text;
+ALTER TABLE learn.lessons ALTER COLUMN id TYPE VARCHAR(255) USING id::text;
+
+ALTER TABLE learn.lessons
+    ADD COLUMN IF NOT EXISTS title VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS chapter VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS chapter_no INTEGER DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS index INTEGER DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS quiz_xp INTEGER DEFAULT 100,
+    ADD COLUMN IF NOT EXISTS total INTEGER DEFAULT 10,
+    ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 100,
+    ADD COLUMN IF NOT EXISTS difficulty VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS description VARCHAR(1000),
+    ADD COLUMN IF NOT EXISTS duration_minutes INTEGER,
+    ADD COLUMN IF NOT EXISTS jargon_words_json VARCHAR(1000),
+    ADD COLUMN IF NOT EXISTS segments_json VARCHAR(4000);
+
 CREATE INDEX IF NOT EXISTS idx_lessons_difficulty
     ON learn.lessons(difficulty);
 
