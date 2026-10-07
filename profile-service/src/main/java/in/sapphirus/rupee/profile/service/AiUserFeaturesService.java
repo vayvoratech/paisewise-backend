@@ -181,13 +181,8 @@ public class AiUserFeaturesService {
                 );
                 if (!progressRows.isEmpty() && progressRows.get(0).get("p_started") != null) {
                     int pStarted = ((Number) progressRows.get(0).get("p_started")).intValue();
-                    if (pStarted > 0) {
-                        if (lessonsStarted == 0) lessonsStarted = pStarted;
-                        if (quizCount == 0 && lessonsStarted > 0) {
-                            // User completed lessons with passed quizzes built-in
-                            quizAvgScore = 100.0;
-                            lessonPassRate = 1.0;
-                        }
+                    if (pStarted > 0 && lessonsStarted == 0) {
+                        lessonsStarted = pStarted;
                     }
                     if (progressRows.get(0).get("total_time") != null) {
                         sessionDurationSecs = ((Number) progressRows.get(0).get("total_time")).intValue();

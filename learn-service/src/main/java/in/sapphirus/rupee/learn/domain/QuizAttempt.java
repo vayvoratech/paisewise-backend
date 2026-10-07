@@ -68,12 +68,31 @@ public class QuizAttempt {
     @Column(nullable = false, length = 5)
     private String language = "en";
 
-    protected QuizAttempt() {}
+    @PrePersist
+    @PreUpdate
+    public void ensureDefaults() {
+        if (this.language == null || this.language.isBlank()) {
+            this.language = "en";
+        }
+        if (this.questionsServed == null) {
+            this.questionsServed = "[]";
+        }
+        if (this.userAnswers == null) {
+            this.userAnswers = "[]";
+        }
+        if (this.status == null) {
+            this.status = "COMPLETED";
+        }
+        if (this.passThresholdPct == 0.0) {
+            this.passThresholdPct = 60.0;
+        }
+    }
 
     public QuizAttempt(UUID userId, String lessonId, int attemptNumber) {
         this.userId = userId;
         this.lessonId = lessonId;
         this.attemptNumber = attemptNumber;
+        this.language = "en";
     }
 
     public UUID getId() { return id; }
