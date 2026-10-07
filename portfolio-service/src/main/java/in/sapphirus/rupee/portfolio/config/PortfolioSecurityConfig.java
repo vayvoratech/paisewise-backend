@@ -55,8 +55,8 @@ public class PortfolioSecurityConfig {
                                 "/static/**",
                                 "/favicon.ico",
                                 "/api/preview/**").permitAll()
-                        // Razorpay webhook — authenticated by HMAC, NOT by JWT
-                        .requestMatchers("/webhooks/**", "/portfolio/webhooks/**").permitAll()
+                        // Razorpay webhook & AI recommendations
+                        .requestMatchers("/webhooks/**", "/portfolio/webhooks/**", "/portfolio/ai/**", "/ai/**").permitAll()
                         // Everything else requires JWT
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(
