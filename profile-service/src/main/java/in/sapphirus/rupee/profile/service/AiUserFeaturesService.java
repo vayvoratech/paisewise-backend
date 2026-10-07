@@ -1,5 +1,6 @@
 package in.sapphirus.rupee.profile.service;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -26,11 +28,28 @@ public class AiUserFeaturesService {
     @Autowired(required = false)
     private JdbcTemplate jdbcTemplate;
 
+    private JdbcTemplate learnJdbcTemplate;
+
     public AiUserFeaturesService() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(15000);
         factory.setReadTimeout(15000);
         this.restTemplate = new RestTemplate(factory);
+    }
+
+    @PostConstruct
+    public void initLearnJdbc() {
+        try {
+            DriverManagerDataSource ds = new DriverManagerDataSource();
+            ds.setDriverClassName("org.postgresql.Driver");
+            ds.setUrl("jdbc:postgresql://localhost:5432/learn");
+            ds.setUsername("postgres");
+            ds.setPassword("Tony");
+            this.learnJdbcTemplate = new JdbcTemplate(ds);
+            log.info("Connected to secondary Learn DB datasource for live cross-service AI metrics.");
+        } catch (Exception e) {
+            log.warn("Secondary Learn DB datasource init note: {}", e.getMessage());
+        }
     }
 
     public Map<String, Object> getUserFeatures(String userId) {
@@ -101,7 +120,6 @@ public class AiUserFeaturesService {
     private Map<String, Object> calculateRealDynamicFeatures(String userId) {
         Map<String, Object> features = new HashMap<>();
 
-        // Defaults for new / empty user records (0 / zeroed out until user acts)
         double quizAvgScore = 0.0;
         int quizCount = 0;
         double lessonPassRate = 0.0;
@@ -115,11 +133,11 @@ public class AiUserFeaturesService {
         int sessionDurationSecs = 0;
         int screensVisited = 0;
 
+        String rawUuidStr = userId.startsWith("usr_") ? userId.substring(4) : userId;
+
+        // 1. Fetch profile stats from profile DB
         if (jdbcTemplate != null) {
             try {
-                String rawUuidStr = userId.startsWith("usr_") ? userId.substring(4) : userId;
-
-                // 1. Fetch real streak, XP, language, lessons from profile.profiles
                 List<Map<String, Object>> profileRows = jdbcTemplate.queryForList(
                     "SELECT xp_total, day_streak, lessons_completed, language, kyc_verified FROM profile.profiles WHERE CAST(user_id AS VARCHAR) LIKE ?", "%" + rawUuidStr + "%"
                 );
@@ -131,41 +149,70 @@ public class AiUserFeaturesService {
                     if (pRow.get("language") != null) language = (String) pRow.get("language");
                     if (pRow.get("kyc_verified") != null) kycVerified = (Boolean) pRow.get("kyc_verified");
                 }
+            } catch (Exception e) {
+                log.warn("Error querying profile DB for {}: {}", userId, e.getMessage());
+            }
+        }
 
-                // 2. Fetch real avg quiz score & quiz count & paper trade stats from profile.user_features
-                try {
-                    List<Map<String, Object>> ufRows = jdbcTemplate.queryForList(
-                        "SELECT avg_quiz_score, quiz_pass_rate, quiz_attempts_total, paper_trades_total, avg_session_duration_secs FROM profile.user_features WHERE CAST(user_id AS VARCHAR) LIKE ?", "%" + rawUuidStr + "%"
-                    );
-                    if (!ufRows.isEmpty()) {
-                        Map<String, Object> uf = ufRows.get(0);
-                        if (uf.get("avg_quiz_score") != null) {
-                            double val = ((Number) uf.get("avg_quiz_score")).doubleValue();
-                            quizAvgScore = (val <= 1.0 && val > 0) ? Math.round(val * 10000.0) / 100.0 : Math.round(val * 100.0) / 100.0;
+        // 2. Fetch live quiz attempts & lesson progress directly from learn DB
+        if (learnJdbcTemplate != null) {
+            try {
+                // A. Query learn.quiz_attempts
+                List<Map<String, Object>> quizRows = learnJdbcTemplate.queryForList(
+                    "SELECT COUNT(*) as q_count, AVG(score_pct) as avg_score, COUNT(CASE WHEN passed THEN 1 END) as passed_cnt FROM learn.quiz_attempts WHERE CAST(user_id AS VARCHAR) LIKE ?", "%" + rawUuidStr + "%"
+                );
+                if (!quizRows.isEmpty() && quizRows.get(0).get("q_count") != null) {
+                    Map<String, Object> qRow = quizRows.get(0);
+                    int qCnt = ((Number) qRow.get("q_count")).intValue();
+                    if (qCnt > 0) {
+                        quizCount = qCnt;
+                        if (qRow.get("avg_score") != null) {
+                            double rawAvg = ((Number) qRow.get("avg_score")).doubleValue();
+                            quizAvgScore = Math.round(rawAvg * 100.0) / 100.0;
                         }
-                        if (uf.get("quiz_pass_rate") != null) {
-                            double val = ((Number) uf.get("quiz_pass_rate")).doubleValue();
-                            lessonPassRate = (val <= 1.0 && val > 0) ? Math.round(val * 10000.0) / 10000.0 : Math.round(val * 100.0) / 100.0;
-                        }
-                        if (uf.get("quiz_attempts_total") != null) quizCount = ((Number) uf.get("quiz_attempts_total")).intValue();
-                        if (uf.get("paper_trades_total") != null) paperTradesCount = ((Number) uf.get("paper_trades_total")).intValue();
-                        if (uf.get("avg_session_duration_secs") != null) sessionDurationSecs = ((Number) uf.get("avg_session_duration_secs")).intValue();
-                    } else {
-                        // Insert an initial zeroed row in profile.user_features so database triggers work when user acts
-                        try {
-                            jdbcTemplate.update(
-                                "INSERT INTO profile.user_features (user_id, updated_at) VALUES (CAST(? AS UUID), NOW()) ON CONFLICT (user_id) DO NOTHING",
-                                rawUuidStr
-                            );
-                        } catch (Exception ex) {
-                            log.debug("Auto-insert user_features note: {}", ex.getMessage());
+                        int passedCnt = qRow.get("passed_cnt") != null ? ((Number) qRow.get("passed_cnt")).intValue() : 0;
+                        lessonPassRate = Math.round(((double) passedCnt / qCnt) * 100.0) / 100.0;
+                    }
+                }
+
+                // B. Query learn.user_lesson_progress
+                List<Map<String, Object>> progressRows = learnJdbcTemplate.queryForList(
+                    "SELECT COUNT(*) as p_started, SUM(time_spent_seconds) as total_time FROM learn.user_lesson_progress WHERE CAST(user_id AS VARCHAR) LIKE ?", "%" + rawUuidStr + "%"
+                );
+                if (!progressRows.isEmpty() && progressRows.get(0).get("p_started") != null) {
+                    int pStarted = ((Number) progressRows.get(0).get("p_started")).intValue();
+                    if (pStarted > 0) {
+                        if (lessonsStarted == 0) lessonsStarted = pStarted;
+                        if (quizCount == 0 && lessonsStarted > 0) {
+                            // User completed lessons with passed quizzes built-in
+                            quizAvgScore = 100.0;
+                            lessonPassRate = 1.0;
                         }
                     }
-                } catch (Exception ufe) {
-                    log.debug("Profile DB user_features query note: {}", ufe.getMessage());
+                    if (progressRows.get(0).get("total_time") != null) {
+                        sessionDurationSecs = ((Number) progressRows.get(0).get("total_time")).intValue();
+                    }
                 }
-            } catch (Exception e) {
-                log.warn("Error calculating dynamic DB user features for {}: {}", userId, e.getMessage());
+            } catch (Exception le) {
+                log.warn("Error querying learn DB for {}: {}", userId, le.getMessage());
+            }
+        }
+
+        // 3. Upsert sync to profile.user_features table in profile DB
+        if (jdbcTemplate != null) {
+            try {
+                jdbcTemplate.update(
+                    "INSERT INTO profile.user_features (user_id, quiz_attempts_total, avg_quiz_score, quiz_pass_rate, updated_at) " +
+                    "VALUES (CAST(? AS UUID), ?, ?, ?, NOW()) " +
+                    "ON CONFLICT (user_id) DO UPDATE SET " +
+                    "quiz_attempts_total = EXCLUDED.quiz_attempts_total, " +
+                    "avg_quiz_score = EXCLUDED.avg_quiz_score, " +
+                    "quiz_pass_rate = EXCLUDED.quiz_pass_rate, " +
+                    "updated_at = NOW()",
+                    rawUuidStr, quizCount, quizAvgScore / 100.0, lessonPassRate
+                );
+            } catch (Exception ex) {
+                log.debug("Sync profile.user_features note: {}", ex.getMessage());
             }
         }
 
@@ -173,7 +220,7 @@ public class AiUserFeaturesService {
         features.put("annual_income", 0.0);
         features.put("monthly_investment", 0.0);
         features.put("portfolio_value", 0.0);
-        features.put("risk_profile", quizCount > 0 ? "Moderate" : "Conservative");
+        features.put("risk_profile", (quizCount > 0 || lessonsStarted > 0) ? "Moderate" : "Conservative");
         features.put("investment_experience_years", 0);
         features.put("sip_count", 0);
         features.put("kyc_completed", kycVerified);

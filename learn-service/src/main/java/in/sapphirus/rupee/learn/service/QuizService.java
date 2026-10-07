@@ -67,8 +67,13 @@ public class QuizService {
         if (questions.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found for lesson: " + lessonId);
         }
-        if (questions.size() != userAnswers.size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Submitted answers count does not match quiz size");
+        if (userAnswers == null) {
+            userAnswers = new ArrayList<>();
+        } else {
+            userAnswers = new ArrayList<>(userAnswers);
+        }
+        while (userAnswers.size() < questions.size()) {
+            userAnswers.add("UNANSWERED");
         }
 
         int score = 0;
