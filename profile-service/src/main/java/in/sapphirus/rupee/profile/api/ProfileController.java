@@ -17,11 +17,15 @@ public class ProfileController {
     private final ProfileRepository profiles;
     private final BadgeRepository badges;
     private final in.sapphirus.rupee.profile.service.XpService xpService;
+    private final in.sapphirus.rupee.profile.service.AiUserFeaturesService aiUserFeaturesService;
 
-    public ProfileController(ProfileRepository profiles, BadgeRepository badges, in.sapphirus.rupee.profile.service.XpService xpService) {
+    public ProfileController(ProfileRepository profiles, BadgeRepository badges,
+                             in.sapphirus.rupee.profile.service.XpService xpService,
+                             in.sapphirus.rupee.profile.service.AiUserFeaturesService aiUserFeaturesService) {
         this.profiles = profiles;
         this.badges = badges;
         this.xpService = xpService;
+        this.aiUserFeaturesService = aiUserFeaturesService;
     }
 
     public record ProfileView(String userId, String name, String handle, String city, int level,
@@ -69,6 +73,16 @@ public class ProfileController {
     @PostMapping("/internal/xp/award")
     public void awardXpInternal(@RequestBody InternalXpAwardRequest req) {
         xpService.awardXp(java.util.UUID.fromString(req.userId()), req.xpAmount(), req.source());
+    }
+
+    @GetMapping("/ai-features/{userId}")
+    public java.util.Map<String, Object> getAiFeatures(@PathVariable String userId) {
+        return aiUserFeaturesService.getUserFeatures(userId);
+    }
+
+    @PostMapping("/ai-features/refresh/{userId}")
+    public java.util.Map<String, Object> refreshAiFeatures(@PathVariable String userId) {
+        return aiUserFeaturesService.refreshUserFeatures(userId);
     }
 
     /** Auto-provision a profile on first access; auth-service owns identity. */

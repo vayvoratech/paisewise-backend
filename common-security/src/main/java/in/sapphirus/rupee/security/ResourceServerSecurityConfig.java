@@ -54,7 +54,10 @@ public class ResourceServerSecurityConfig {
                                 "/auth/send-otp",
                                 "/auth/set-mpin",
                                 "/auth/login/mpin",
-                                "/auth/logout").permitAll()
+                                "/auth/logout",
+                                "/profile/ai-features/**",
+                                "/portfolio/ai-insight",
+                                "/learn/jargon/ai").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
