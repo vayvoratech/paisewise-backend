@@ -101,23 +101,27 @@ public class AiUserFeaturesService {
     private Map<String, Object> calculateRealDynamicFeatures(String userId) {
         Map<String, Object> features = new HashMap<>();
 
-        // Defaults if DB record is empty
-        double quizAvgScore = 69.05;
-        int quizCount = 75;
-        double lessonPassRate = 0.62;
-        int streakDays = 82;
-        int totalXp = 9050;
-        int lessonsStarted = 119;
+        // Defaults for new / empty user records (0 / zeroed out until user acts)
+        double quizAvgScore = 0.0;
+        int quizCount = 0;
+        double lessonPassRate = 0.0;
+        int streakDays = 0;
+        int totalXp = 0;
+        int lessonsStarted = 0;
         String language = "English";
-        boolean kycVerified = true;
-        int paperTradesCount = 81;
-        double paperWinRate = 0.69;
+        boolean kycVerified = false;
+        int paperTradesCount = 0;
+        double paperWinRate = 0.0;
+        int sessionDurationSecs = 0;
+        int screensVisited = 0;
 
         if (jdbcTemplate != null) {
             try {
+                String rawUuidStr = userId.startsWith("usr_") ? userId.substring(4) : userId;
+
                 // 1. Fetch real streak, XP, language, lessons from profile.profiles
                 List<Map<String, Object>> profileRows = jdbcTemplate.queryForList(
-                    "SELECT xp_total, day_streak, lessons_completed, language, kyc_verified FROM profile.profiles WHERE user_id = ?", userId
+                    "SELECT xp_total, day_streak, lessons_completed, language, kyc_verified FROM profile.profiles WHERE CAST(user_id AS VARCHAR) LIKE ?", "%" + rawUuidStr + "%"
                 );
                 if (!profileRows.isEmpty()) {
                     Map<String, Object> pRow = profileRows.get(0);
@@ -130,9 +134,8 @@ public class AiUserFeaturesService {
 
                 // 2. Fetch real avg quiz score & quiz count & paper trade stats from profile.user_features
                 try {
-                    String uuidString = userId.startsWith("usr_") ? userId.substring(4) : userId;
                     List<Map<String, Object>> ufRows = jdbcTemplate.queryForList(
-                        "SELECT avg_quiz_score, quiz_pass_rate, quiz_attempts_total, paper_trades_total FROM profile.user_features WHERE CAST(user_id AS VARCHAR) LIKE ?", "%" + uuidString + "%"
+                        "SELECT avg_quiz_score, quiz_pass_rate, quiz_attempts_total, paper_trades_total, avg_session_duration_secs FROM profile.user_features WHERE CAST(user_id AS VARCHAR) LIKE ?", "%" + rawUuidStr + "%"
                     );
                     if (!ufRows.isEmpty()) {
                         Map<String, Object> uf = ufRows.get(0);
@@ -146,6 +149,17 @@ public class AiUserFeaturesService {
                         }
                         if (uf.get("quiz_attempts_total") != null) quizCount = ((Number) uf.get("quiz_attempts_total")).intValue();
                         if (uf.get("paper_trades_total") != null) paperTradesCount = ((Number) uf.get("paper_trades_total")).intValue();
+                        if (uf.get("avg_session_duration_secs") != null) sessionDurationSecs = ((Number) uf.get("avg_session_duration_secs")).intValue();
+                    } else {
+                        // Insert an initial zeroed row in profile.user_features so database triggers work when user acts
+                        try {
+                            jdbcTemplate.update(
+                                "INSERT INTO profile.user_features (user_id, updated_at) VALUES (CAST(? AS UUID), NOW()) ON CONFLICT (user_id) DO NOTHING",
+                                rawUuidStr
+                            );
+                        } catch (Exception ex) {
+                            log.debug("Auto-insert user_features note: {}", ex.getMessage());
+                        }
                     }
                 } catch (Exception ufe) {
                     log.debug("Profile DB user_features query note: {}", ufe.getMessage());
@@ -155,13 +169,13 @@ public class AiUserFeaturesService {
             }
         }
 
-        features.put("age", 28);
-        features.put("annual_income", 600000.0);
-        features.put("monthly_investment", 10000.0);
-        features.put("portfolio_value", 250000.0);
-        features.put("risk_profile", "Moderate");
-        features.put("investment_experience_years", 3);
-        features.put("sip_count", 2);
+        features.put("age", 25);
+        features.put("annual_income", 0.0);
+        features.put("monthly_investment", 0.0);
+        features.put("portfolio_value", 0.0);
+        features.put("risk_profile", quizCount > 0 ? "Moderate" : "Conservative");
+        features.put("investment_experience_years", 0);
+        features.put("sip_count", 0);
         features.put("kyc_completed", kycVerified);
         features.put("lesson_completion_rate", lessonPassRate);
         features.put("quiz_avg_score", quizAvgScore);
@@ -171,8 +185,8 @@ public class AiUserFeaturesService {
         features.put("paper_trade_count", paperTradesCount);
         features.put("paper_trade_profit_rate", paperWinRate);
         features.put("time_of_day", "morning");
-        features.put("session_duration", 4047);
-        features.put("screens_visited", 813);
+        features.put("session_duration", sessionDurationSecs > 0 ? Math.round((float) sessionDurationSecs / 60.0) : 0);
+        features.put("screens_visited", screensVisited);
         features.put("lessons_started", lessonsStarted);
         features.put("quizzes_taken", quizCount);
 
