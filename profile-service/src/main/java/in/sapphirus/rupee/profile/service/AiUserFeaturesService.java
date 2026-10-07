@@ -112,8 +112,12 @@ public class AiUserFeaturesService {
             result.put("updated_at", java.time.Instant.now().toString());
             result.put("features", dynamicFeatures);
         }
-        result.put("status", "refreshed");
+        result.put("status", "refresh_requested");
+        result.put("userId", userId);
+        result.put("user_id", userId);
+        result.put("feature_version", "v1");
         result.put("updated_at", java.time.Instant.now().toString());
+        result.put("features", dynamicFeatures);
         return result;
     }
 
@@ -222,6 +226,8 @@ public class AiUserFeaturesService {
         features.put("sip_count", 0);
         features.put("kyc_completed", kycVerified);
         features.put("lesson_completion_rate", lessonPassRate);
+        features.put("quiz_pass_rate", lessonPassRate);
+        features.put("avg_quiz_score", quizAvgScore);
         features.put("quiz_avg_score", quizAvgScore);
         features.put("streak_days", streakDays);
         features.put("total_xp", totalXp);
@@ -232,6 +238,7 @@ public class AiUserFeaturesService {
         features.put("session_duration", calculatedMins);
         features.put("screens_visited", screensVisited);
         features.put("lessons_started", lessonsStarted);
+        features.put("quiz_attempts_total", quizCount);
         features.put("quizzes_taken", quizCount);
 
         return features;
