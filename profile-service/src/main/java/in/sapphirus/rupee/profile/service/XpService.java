@@ -29,13 +29,16 @@ public class XpService {
 
     @Transactional
     public void awardXp(UUID userId, int xpAmount, String source) {
-        // Apply SELECT ... FOR UPDATE database lock to prevent concurrent double-rewards
+        // Auto-provision profile if user has not explicitly navigated to /profile/me yet
         Profile p = profileRepo.findAndLockByUserId(userId.toString())
-                .orElseThrow(() -> new IllegalArgumentException("User profile not found: " + userId));
+                .orElseGet(() -> profileRepo.save(new Profile(userId.toString(), "Investor", "@investor", "India")));
 
         int oldXp = p.getXpTotal();
         int newXp = oldXp + xpAmount;
         p.setXpTotal(newXp);
+        if (source != null && source.startsWith("LESSON_COMPLETE")) {
+            p.setLessonsCompleted(p.getLessonsCompleted() + 1);
+        }
 
         // Compute level threshold dynamically
         int oldLevel = p.getLevel();
