@@ -40,16 +40,35 @@ public class XpService {
         }
 
         try {
-            String profileUrl = "http://localhost:8082/profile/internal/xp/award";
+            String[] urls = new String[]{
+                "http://localhost:8082/profile/internal/xp/award",
+                "http://localhost:8080/profile/internal/xp/award"
+            };
             org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
             Map<String, Object> req = new HashMap<>();
             req.put("userId", userId.toString());
             req.put("xpAmount", xpAmount);
             req.put("source", reason);
-            restTemplate.postForObject(profileUrl, req, Void.class);
-            log.info("Directly awarded {} XP to user {} in profile-service", xpAmount, userId);
+            for (String profileUrl : urls) {
+                try {
+                    restTemplate.postForObject(profileUrl, req, Void.class);
+                    log.info("Directly awarded {} XP to user {} in profile-service at {}", xpAmount, userId, profileUrl);
+                    break;
+                } catch (Exception innerEx) {
+                    log.debug("HTTP post to {} failed, trying next", profileUrl);
+                }
+            }
         } catch (Exception ex) {
             log.warn("Direct HTTP call to profile-service internal/xp/award note: {}", ex.getMessage());
         }
+    }
+
+    public int calculateLevel(int xpTotal) {
+        if (xpTotal < 0) return 1;
+        return (xpTotal / 100) + 1;
+    }
+
+    public boolean checkAndProcessLevelUp(int oldXp, int newXp) {
+        return calculateLevel(newXp) > calculateLevel(oldXp);
     }
 }

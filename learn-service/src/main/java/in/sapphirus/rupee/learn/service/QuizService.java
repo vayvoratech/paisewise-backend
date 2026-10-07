@@ -105,10 +105,14 @@ public class QuizService {
         boolean alreadyPassed = attemptRepo.findByUserIdAndLessonIdOrderByAttemptNumberDesc(userId, lessonId)
                 .stream().anyMatch(QuizAttempt::isPassed);
 
+        int rewardToGive = xpReward > 0 ? xpReward : 50;
         if (passed && !alreadyPassed) {
-            // Award XP only on the first passed attempt to prevent spam farming
-            attempt.setXpEarned(xpReward);
-            xpService.awardXp(userId, xpReward, "FIRST_QUIZ_PASS_" + lessonId);
+            // Award XP on the first passed attempt
+            attempt.setXpEarned(rewardToGive);
+            xpService.awardXp(userId, rewardToGive, "FIRST_QUIZ_PASS_" + lessonId);
+        } else if (passed) {
+            attempt.setXpEarned(rewardToGive);
+            xpService.awardXp(userId, rewardToGive, "QUIZ_PASS_" + lessonId);
         } else {
             attempt.setXpEarned(0);
         }

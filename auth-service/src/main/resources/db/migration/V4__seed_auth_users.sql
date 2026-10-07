@@ -2,6 +2,17 @@
 -- V4__seed_auth_users.sql (auth-service)
 -- Inserts 10 test user accounts matching your platform profile ids
 -- =========================================================================
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS mpin_hash VARCHAR(255);
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS kyc_status VARCHAR(50) NOT NULL DEFAULT 'NOT_STARTED';
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS xp_points INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS streak_days INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS last_active_date DATE;
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 INSERT INTO auth.users (id, name, email, phone, password_hash, kyc_status, xp_points, level, streak_days, email_verified, created_at, updated_at) VALUES
                                                                                                                                                       ('00000000-0000-0000-0000-000000000001', 'Alice Smith', 'alice@example.com', '9876543211', '$2a$10$dummyHashValueForTesting1', 'VERIFIED', 1250, 2, 5, true, NOW(), NOW()),
                                                                                                                                                       ('00000000-0000-0000-0000-000000000002', 'Bob Jones', 'bob@example.com', '9876543212', '$2a$10$dummyHashValueForTesting2', 'VERIFIED', 2400, 3, 12, true, NOW(), NOW()),

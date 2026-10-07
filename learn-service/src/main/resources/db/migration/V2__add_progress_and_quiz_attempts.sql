@@ -18,7 +18,14 @@
 -- expected column and backfill it from the existing quiz_xp values.
 ALTER TABLE learn.lessons
     ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 50;
-UPDATE learn.lessons SET xp_reward = quiz_xp WHERE xp_reward IS NULL;
+
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='learn' AND table_name='lessons' AND column_name='quiz_xp') THEN
+        EXECUTE 'UPDATE learn.lessons SET xp_reward = quiz_xp WHERE xp_reward IS NULL';
+    ELSE
+        EXECUTE 'UPDATE learn.lessons SET xp_reward = 50 WHERE xp_reward IS NULL';
+    END IF;
+END $$;
 
 -- =====================================================================
 -- TABLE 3: user_lesson_progress
