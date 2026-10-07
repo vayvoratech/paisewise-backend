@@ -88,6 +88,8 @@ public class QuizAttempt {
         }
     }
 
+    public QuizAttempt() {}
+
     public QuizAttempt(UUID userId, String lessonId, int attemptNumber) {
         this.userId = userId;
         this.lessonId = lessonId;

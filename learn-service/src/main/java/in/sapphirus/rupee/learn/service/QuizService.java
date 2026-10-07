@@ -144,9 +144,6 @@ public class QuizService {
         try {
             List<Map<String, Object>> optionsList = objectMapper.readValue(optionsJson, new TypeReference<List<Map<String, Object>>>() {});
             Collections.shuffle(optionsList);
-            for (Map<String, Object> opt : optionsList) {
-                opt.remove("correct");
-            }
             return objectMapper.writeValueAsString(optionsList);
         } catch (Exception e) {
             return optionsJson;
