@@ -142,8 +142,10 @@ public class LearnService {
                     .connectTimeout(java.time.Duration.ofSeconds(15))
                     .build();
 
+            // Send the raw input term (e.g. "SIP") to Render AI as it matches indexed jargon keys
+            String renderTerm = (term != null && !term.isBlank()) ? term.trim() : queryTerm;
             String jsonPayload = String.format("{\"term\":\"%s\",\"language\":\"%s\",\"userId\":\"1\"}",
-                    queryTerm.replaceAll("\"", "\\\""), langCode);
+                    renderTerm.replaceAll("\"", "\\\""), langCode);
 
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("https://paisewise-aiml-dgd5.onrender.com/ai/jargon"))
@@ -158,7 +160,7 @@ public class LearnService {
                 com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body());
                 if (root.has("explanation")) {
                     String explanation = root.get("explanation").asText();
-                    if (explanation != null && !explanation.isBlank()) {
+                    if (explanation != null && !explanation.isBlank() && !explanation.toLowerCase().contains("currently unavailable")) {
                         aiJargonCache.put(cacheKey, explanation);
                         return explanation;
                     }
