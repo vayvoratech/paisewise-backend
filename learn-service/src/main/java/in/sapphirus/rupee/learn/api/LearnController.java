@@ -44,7 +44,7 @@ public class LearnController {
     public record QuizView(String id, String prompt, int seconds, int xp,
                            @JsonRawValue String options, String explanation) {}
 
-    public record ProgressRequest(String lessonId) {}
+    public record ProgressRequest(String lessonId, Integer timeSpentSeconds) {}
 
     public record ProgressResponse(double progressPercent, String completedLessonId) {
         public ProgressResponse(double progressPercent) {
@@ -100,9 +100,11 @@ public class LearnController {
     }
 
     @PostMapping("/lessons/{lessonId}/complete")
-    public ProgressResponse completeLessonByPath(@PathVariable String lessonId) {
+    public ProgressResponse completeLessonByPath(
+            @PathVariable String lessonId,
+            @RequestParam(required = false, defaultValue = "120") int timeSpentSeconds) {
         UUID userId = UUID.fromString(CurrentUser.requireId());
-        learnService.completeLesson(userId, lessonId);
+        learnService.completeLesson(userId, lessonId, timeSpentSeconds);
         double percent = learnService.getLessonProgress(userId);
         return new ProgressResponse(percent, lessonId);
     }
@@ -110,7 +112,8 @@ public class LearnController {
     @PostMapping({"/progress", "/complete"})
     public ProgressResponse completeLessonByBody(@RequestBody ProgressRequest req) {
         UUID userId = UUID.fromString(CurrentUser.requireId());
-        learnService.completeLesson(userId, req.lessonId());
+        int secs = (req != null && req.timeSpentSeconds() != null && req.timeSpentSeconds() > 0) ? req.timeSpentSeconds() : 120;
+        learnService.completeLesson(userId, req.lessonId(), secs);
         double percent = learnService.getLessonProgress(userId);
         return new ProgressResponse(percent, req.lessonId());
     }

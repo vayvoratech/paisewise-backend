@@ -217,6 +217,8 @@ public class AiUserFeaturesService {
         features.put("portfolio_value", 0.0);
         features.put("risk_profile", (quizCount > 0 || lessonsStarted > 0) ? "Moderate" : "Conservative");
         features.put("investment_experience_years", 0);
+        int calculatedMins = sessionDurationSecs > 0 ? (int) Math.ceil((double) sessionDurationSecs / 60.0) : (lessonsStarted * 2);
+
         features.put("sip_count", 0);
         features.put("kyc_completed", kycVerified);
         features.put("lesson_completion_rate", lessonPassRate);
@@ -227,7 +229,7 @@ public class AiUserFeaturesService {
         features.put("paper_trade_count", paperTradesCount);
         features.put("paper_trade_profit_rate", paperWinRate);
         features.put("time_of_day", "morning");
-        features.put("session_duration", sessionDurationSecs > 0 ? Math.round((float) sessionDurationSecs / 60.0) : 0);
+        features.put("session_duration", calculatedMins);
         features.put("screens_visited", screensVisited);
         features.put("lessons_started", lessonsStarted);
         features.put("quizzes_taken", quizCount);

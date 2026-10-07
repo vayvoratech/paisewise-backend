@@ -63,6 +63,11 @@ public class LearnService {
 
     @Transactional
     public void completeLesson(UUID userId, String lessonId) {
+        completeLesson(userId, lessonId, 120);
+    }
+
+    @Transactional
+    public void completeLesson(UUID userId, String lessonId, int timeSpentSeconds) {
         UserLessonProgress progress = progressRepo.findByUserIdAndLessonId(userId, lessonId)
                 .orElseGet(() -> new UserLessonProgress(userId, lessonId));
 
@@ -70,6 +75,8 @@ public class LearnService {
         progress.setStatus("COMPLETED");
         progress.setCompletedAt(Instant.now());
         progress.setLastViewedAt(Instant.now());
+        int addSecs = timeSpentSeconds > 0 ? timeSpentSeconds : 120;
+        progress.setTimeSpentSeconds(progress.getTimeSpentSeconds() + addSecs);
         progressRepo.save(progress);
 
         streakService.updateStreak(userId);

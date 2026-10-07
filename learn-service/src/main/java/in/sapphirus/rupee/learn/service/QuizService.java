@@ -37,7 +37,7 @@ public class QuizService {
     public List<QuizQuestion> getQuizForLesson(String lessonId) {
         List<QuizQuestion> list = quizRepo.findByLessonId(lessonId);
         if (list.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No quiz found for lesson: " + lessonId);
+            list = createFallbackQuestions(lessonId);
         }
 
         // Shuffle questions
@@ -65,7 +65,7 @@ public class QuizService {
     public QuizAttempt submitQuiz(UUID userId, String lessonId, List<String> userAnswers, int xpReward) {
         List<QuizQuestion> questions = quizRepo.findByLessonId(lessonId);
         if (questions.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Quiz not found for lesson: " + lessonId);
+            questions = createFallbackQuestions(lessonId);
         }
         if (userAnswers == null) {
             userAnswers = new ArrayList<>();
@@ -165,5 +165,25 @@ public class QuizService {
             // ignore
         }
         return null;
+    }
+
+    private List<QuizQuestion> createFallbackQuestions(String lessonId) {
+        List<QuizQuestion> list = new ArrayList<>();
+        list.add(new QuizQuestion(lessonId + "_q1", lessonId, "B", "What is the primary objective of this lesson?", 25, 50, 1,
+                "[{\"key\":\"A\",\"text\":\"Short term speculation\",\"correct\":false},{\"key\":\"B\",\"text\":\"Long term financial growth & discipline\",\"correct\":true},{\"key\":\"C\",\"text\":\"Avoiding all investments\",\"correct\":false},{\"key\":\"D\",\"text\":\"Paying high transaction fees\",\"correct\":false}]",
+                "Financial literacy focuses on compounding and long term discipline."));
+        list.add(new QuizQuestion(lessonId + "_q2", lessonId, "B", "Which strategy reduces market volatility risk?", 25, 50, 2,
+                "[{\"key\":\"A\",\"text\":\"Putting all funds in 1 stock\",\"correct\":false},{\"key\":\"B\",\"text\":\"Systematic Monthly SIP Diversification\",\"correct\":true},{\"key\":\"C\",\"text\":\"Panicking during market dips\",\"correct\":false},{\"key\":\"D\",\"text\":\"Ignoring expense ratios\",\"correct\":false}]",
+                "SIP & diversification reduce volatility risk."));
+        list.add(new QuizQuestion(lessonId + "_q3", lessonId, "B", "How does inflation affect cash savings?", 25, 50, 3,
+                "[{\"key\":\"A\",\"text\":\"Increases purchasing power\",\"correct\":false},{\"key\":\"B\",\"text\":\"Erodes real purchasing power over time\",\"correct\":true},{\"key\":\"C\",\"text\":\"Has zero impact on prices\",\"correct\":false},{\"key\":\"D\",\"text\":\"Doubles your money\",\"correct\":false}]",
+                "Inflation reduces cash purchasing power over time."));
+        list.add(new QuizQuestion(lessonId + "_q4", lessonId, "B", "What is recommended before investing in high risk assets?", 25, 50, 4,
+                "[{\"key\":\"A\",\"text\":\"Taking bank loans to trade\",\"correct\":false},{\"key\":\"B\",\"text\":\"Building an emergency fund of 3-6 months expenses\",\"correct\":true},{\"key\":\"C\",\"text\":\"Buying penny stocks\",\"correct\":false},{\"key\":\"D\",\"text\":\"Stopping all savings\",\"correct\":false}]",
+                "Emergency funds provide essential financial safety."));
+        list.add(new QuizQuestion(lessonId + "_q5", lessonId, "A", "What is NAV in mutual funds?", 25, 50, 5,
+                "[{\"key\":\"A\",\"text\":\"Net Asset Value (per unit price)\",\"correct\":true},{\"key\":\"B\",\"text\":\"Net Annual Variance\",\"correct\":false},{\"key\":\"C\",\"text\":\"New Account Verification\",\"correct\":false},{\"key\":\"D\",\"text\":\"National Average Value\",\"correct\":false}]",
+                "NAV represents the per-unit net asset value of a fund."));
+        return list;
     }
 }
