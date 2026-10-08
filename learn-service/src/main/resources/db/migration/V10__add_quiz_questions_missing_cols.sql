@@ -1,0 +1,8 @@
+ALTER TABLE learn.quiz_questions ADD COLUMN IF NOT EXISTS explanation VARCHAR(1000);
+ALTER TABLE learn.quiz_questions ADD COLUMN IF NOT EXISTS options_json VARCHAR(2000);
+ALTER TABLE learn.quiz_questions ADD COLUMN IF NOT EXISTS lesson_id VARCHAR(255);
+ALTER TABLE learn.quiz_questions ADD COLUMN IF NOT EXISTS correct_option_id VARCHAR(255);
+ALTER TABLE learn.quiz_questions ADD COLUMN IF NOT EXISTS prompt VARCHAR(500);
+ALTER TABLE learn.quiz_questions ADD COLUMN IF NOT EXISTS seconds INTEGER DEFAULT 30;
+ALTER TABLE learn.quiz_questions ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 10;
+ALTER TABLE learn.quiz_questions ADD COLUMN IF NOT EXISTS order_no INTEGER DEFAULT 1;
