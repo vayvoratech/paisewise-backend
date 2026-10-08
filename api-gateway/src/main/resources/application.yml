@@ -4,8 +4,6 @@ server:
 spring:
   application:
     name: api-gateway
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -99,7 +97,7 @@ spring:
         - id: portfolio-service
           uri: lb://portfolio-service
           predicates:
-            - Path=/portfolio/**
+            - Path=/portfolio/**, /sip/**, /funds/**, /mf/**
           filters:
             - name: JwtValidation
             - name: RequestRateLimiter
@@ -166,7 +164,9 @@ spring:
               - http://localhost:3000
               - http://localhost:5173
               - http://localhost:8080
+              - http://localhost:8081
               - http://localhost:8088
+              - http://localhost:19006
               - http://127.0.0.1:8088
               - https://vayvora-paisewise.netlify.app
             allowedOriginPatterns: "*"
@@ -182,6 +182,8 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
 
 management:
   endpoints:

@@ -26,7 +26,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * All other requests still require a valid JWT access token.
  */
 @Configuration
-@EnableConfigurationProperties({RazorpayProperties.class, BseStarMfProperties.class})
+@EnableConfigurationProperties({RazorpayProperties.class, BseStarMfProperties.class, FyersProperties.class})
 public class PortfolioSecurityConfig {
 
     /**
@@ -55,9 +55,25 @@ public class PortfolioSecurityConfig {
                                 "/static/**",
                                 "/favicon.ico",
                                 "/api/preview/**").permitAll()
-                        // Razorpay webhook & AI recommendations
-                        .requestMatchers("/webhooks/**", "/portfolio/webhooks/**", "/portfolio/ai/**", "/ai/**").permitAll()
-                        // Everything else requires JWT
+                        // Mutual Fund Catalog, AI Recommendations, & Webhooks (Public discovery)
+                        .requestMatchers(
+                                "/portfolio/funds/search",
+                                "/portfolio/funds/trending",
+                                "/portfolio/funds/categories",
+                                "/portfolio/funds/amcs",
+                                "/portfolio/funds/recommendations",
+                                "/portfolio/funds/{schemeCode}",
+                                "/funds/**",
+                                "/portfolio/mf/search",
+                                "/portfolio/mf/trending",
+                                "/portfolio/mf/categories",
+                                "/portfolio/mf/amcs",
+                                "/portfolio/mf/recommendations",
+                                "/portfolio/ai/**",
+                                "/ai/**",
+                                "/webhooks/**",
+                                "/portfolio/webhooks/**").permitAll()
+                        // Everything else requires JWT (orders, holdings, user SIPs)
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))

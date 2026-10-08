@@ -15,6 +15,9 @@ public class AuditLog {
     @Column(name = "user_id")
     private UUID userId;
 
+    @Column(name = "entity_type", nullable = false)
+    private String entityType = "USER";
+
     @Column(nullable = false)
     private String action; // LOGIN, LOGOUT, OTP_SENT, OTP_VERIFIED, MPIN_SET, MPIN_CHANGED, ACCOUNT_LOCKED
 
@@ -46,6 +49,14 @@ public class AuditLog {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getEntityType() {
+        return entityType;
+    }
+
+    public void setEntityType(String entityType) {
+        this.entityType = entityType;
     }
 
     public UUID getUserId() {

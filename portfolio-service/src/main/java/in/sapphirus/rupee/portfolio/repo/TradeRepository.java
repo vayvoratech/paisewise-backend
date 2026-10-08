@@ -5,9 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface TradeRepository extends JpaRepository<Trade, UUID> {
     List<Trade> findByUserIdOrderByTradedAtDesc(UUID userId);
+    List<Trade> findByOrderId(UUID orderId);
+    Optional<Trade> findByBrokerTradeId(String brokerTradeId);
+    boolean existsByBrokerTradeId(String brokerTradeId);
 }

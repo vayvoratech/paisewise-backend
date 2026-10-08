@@ -38,7 +38,10 @@ public class PaperOrderService {
         this.quotes = quotes;
     }
 
-    private PaperAccount getOrCreateAccount(UUID userId) {
+    public static final BigDecimal INITIAL_BALANCE = new BigDecimal("100000.00");
+    public static final int RESET_COOLDOWN_DAYS = 30;
+
+    public PaperAccount getOrCreateAccount(UUID userId) {
         return paperAccounts.findById(userId)
                 .orElseGet(() -> paperAccounts.save(new PaperAccount(userId)));
     }
@@ -46,11 +49,47 @@ public class PaperOrderService {
     private void resetIfEligible(PaperAccount account) {
         Instant now = Instant.now();
 
-        if (!now.isBefore(account.getLastResetAt().plus(30, ChronoUnit.DAYS))) {
-            account.setBalance(new BigDecimal("100000.00"));
+        if (!now.isBefore(account.getLastResetAt().plus(RESET_COOLDOWN_DAYS, ChronoUnit.DAYS))) {
+            account.setBalance(INITIAL_BALANCE);
+            account.setReservedBalance(BigDecimal.ZERO);
             account.setLastResetAt(now);
             paperAccounts.save(account);
         }
+    }
+
+    @Transactional
+    public PaperAccount resetAccount(UUID userId) {
+        PaperAccount account = getOrCreateAccount(userId);
+        Instant now = Instant.now();
+        Instant nextEligibleReset = account.getLastResetAt().plus(RESET_COOLDOWN_DAYS, ChronoUnit.DAYS);
+
+        if (now.isBefore(nextEligibleReset)) {
+            long daysRemaining = ChronoUnit.DAYS.between(now, nextEligibleReset);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Account can only be reset once every 30 days. Days remaining: " + Math.max(1, daysRemaining)
+            );
+        }
+
+        // Cancel pending open orders
+        orders.findByUserIdOrderByPlacedAtDesc(userId).stream()
+                .filter(o -> "OPEN".equals(o.getStatus()))
+                .forEach(openOrder -> {
+                    openOrder.setStatus("CANCELLED");
+                    orders.save(openOrder);
+                });
+
+        // Reset positions
+        paperPositions.findByUserId(userId).forEach(position -> {
+            position.setQuantity(0);
+            position.setReservedQuantity(0);
+            paperPositions.save(position);
+        });
+
+        account.setBalance(INITIAL_BALANCE);
+        account.setReservedBalance(BigDecimal.ZERO);
+        account.setLastResetAt(now);
+        return paperAccounts.save(account);
     }
 
     private void validateBuyBalance(PaperAccount account, BigDecimal requiredAmount) {
@@ -71,6 +110,10 @@ public class PaperOrderService {
 
     @Transactional
     public Order executeMarketBuy(UUID userId, Stock stock, int quantity, String clientOrderId) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+
         BigDecimal marketPrice = quotes.getQuote(stock.getSymbol());
 
         // Fall back to the stock's catalog price when Redis is unavailable or
@@ -83,7 +126,7 @@ public class PaperOrderService {
 
         PaperAccount account = getOrCreateAccount(userId);
         resetIfEligible(account);
-        validateBuyBalance(account, orderValue);
+        validateAvailableBuyBalance(account, orderValue);
 
         account.setBalance(account.getBalance().subtract(orderValue));
         paperAccounts.save(account);
@@ -125,13 +168,15 @@ public class PaperOrderService {
 
     private PaperPosition getOrCreatePosition(UUID userId, String symbol) {
         return paperPositions.findByUserIdAndSymbol(userId, symbol)
-                .orElseGet(() ->
-                        paperPositions.save(new PaperPosition(userId, symbol))
-                );
+                .orElseGet(() -> new PaperPosition(userId, symbol));
     }
 
     @Transactional
     public Order executeMarketSell(UUID userId, Stock stock, int quantity, String clientOrderId) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+
         BigDecimal marketPrice = quotes.getQuote(stock.getSymbol());
 
         // Fall back to the stock's catalog price when Redis is unavailable.
@@ -147,9 +192,10 @@ public class PaperOrderService {
                 stock.getSymbol()
         );
 
-        if (position.getQuantity() < quantity) {
+        int availableQuantity = position.getQuantity() - position.getReservedQuantity();
+        if (availableQuantity < quantity) {
             throw new IllegalArgumentException(
-                    "Insufficient paper shares"
+                    "Insufficient available paper shares"
             );
         }
 
@@ -207,6 +253,10 @@ public class PaperOrderService {
             BigDecimal limitPrice,
             String clientOrderId
     ) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+
         if (limitPrice == null || limitPrice.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Limit price must be greater than zero");
         }
@@ -251,6 +301,10 @@ public class PaperOrderService {
             BigDecimal limitPrice,
             String clientOrderId
     ) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+
         if (limitPrice == null || limitPrice.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException(
                     "Limit price must be greater than zero"
@@ -336,7 +390,7 @@ public class PaperOrderService {
 
         // Remove the reservation.
         account.setReservedBalance(
-                account.getReservedBalance().subtract(reservedAmount)
+                account.getReservedBalance().subtract(reservedAmount).max(BigDecimal.ZERO)
         );
 
         // Pay the actual execution amount.
@@ -483,6 +537,11 @@ public class PaperOrderService {
         );
 
         return trades.save(trade);
+    }
+
+    public BigDecimal getAvailableBalance(UUID userId) {
+        PaperAccount account = getOrCreateAccount(userId);
+        return getAvailableBalance(account);
     }
 
     private BigDecimal getAvailableBalance(PaperAccount account) {

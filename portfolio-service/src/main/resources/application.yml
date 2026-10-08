@@ -63,4 +63,14 @@ bse:
     user-id: ${STARMF_USER_ID:stub_user}
     password: ${STARMF_PASSWORD:stub_password}
     member-code: ${STARMF_MEMBER_CODE:stub_member}
-    stub-mode: ${STARMF_STUB_MODE:true}
+    stub-mode: ${STARMF_STUB_MODE:true}
+
+# ── Fyers Broker API (stub in dev; set FYERS_BASE_URL in prod) ───────────────
+fyers:
+  base-url: ${FYERS_BASE_URL:https://api-t1.fyers.in/api/v3}
+  app-id: ${FYERS_APP_ID:dummy_fyers_app_id}
+  secret-key: ${FYERS_SECRET_KEY:dummy_fyers_secret_key}
+  access-token: ${FYERS_ACCESS_TOKEN:dummy_fyers_access_token}
+  webhook-secret: ${FYERS_WEBHOOK_SECRET:dummy_fyers_webhook_secret}
+  stub-mode: ${FYERS_STUB_MODE:true}
+

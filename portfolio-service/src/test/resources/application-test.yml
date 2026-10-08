@@ -39,3 +39,12 @@ bse:
     member-code: stub
     stub-mode: true
 
+fyers:
+  base-url: http://localhost:8089
+  app-id: test_fyers_app_id
+  secret-key: test_fyers_secret_key
+  access-token: test_fyers_access_token
+  webhook-secret: "test_fyers_webhook_secret"
+  stub-mode: true
+
+

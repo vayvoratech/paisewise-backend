@@ -2,6 +2,19 @@
 -- V5__seed_lessons.sql (learn-service)
 -- Seeds 30 financial literacy lessons across 5 chapters with JSONB content blocks
 -- =========================================================================
+ALTER TABLE IF EXISTS learn.quiz_questions DROP CONSTRAINT IF EXISTS quiz_questions_lesson_id_fkey;
+ALTER TABLE IF EXISTS learn.user_lesson_progress DROP CONSTRAINT IF EXISTS fk_user_lesson_progress_lesson;
+ALTER TABLE IF EXISTS learn.user_lesson_progress DROP CONSTRAINT IF EXISTS user_lesson_progress_lesson_id_fkey;
+ALTER TABLE IF EXISTS learn.quiz_attempts DROP CONSTRAINT IF EXISTS fk_quiz_attempts_lesson;
+ALTER TABLE IF EXISTS learn.quiz_attempts DROP CONSTRAINT IF EXISTS quiz_attempts_lesson_id_fkey;
+
+ALTER TABLE IF EXISTS learn.lessons ALTER COLUMN id TYPE character varying(255) USING id::text;
+ALTER TABLE IF EXISTS learn.quiz_questions ALTER COLUMN lesson_id TYPE character varying(255) USING lesson_id::text;
+ALTER TABLE IF EXISTS learn.user_lesson_progress ALTER COLUMN lesson_id TYPE character varying(255) USING lesson_id::text;
+ALTER TABLE IF EXISTS learn.quiz_attempts ALTER COLUMN lesson_id TYPE character varying(255) USING lesson_id::text;
+
+ALTER TABLE IF EXISTS learn.quiz_questions ADD CONSTRAINT quiz_questions_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES learn.lessons(id) ON DELETE CASCADE;
+
 INSERT INTO learn.lessons (id, title, chapter, chapter_no, index, total, quiz_xp, segments_json, jargon_words_json) VALUES
 ('mf-1', 'Introduction to Money & Savings', 'Financial Basics', 1, 1, 6, 50, '[{"type":"text","content":"Learn how money works, budgeting basics, and the power of compound interest."}]', '["Money","Savings","Inflation"]'),
 ('mf-2', 'What is the Stock Market?', 'Financial Basics', 1, 2, 6, 50, '[{"type":"text","content":"Understand buying shares in Indian companies like Reliance and TCS."}]', '["Stock Market","Shares","NSE"]'),
