@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://qa-db-server:5432/rupee_db
+    url: jdbc:postgresql://qa-db-server:5433/rupee_db
     username: ${DB_USER}
     password: ${DB_PASSWORD}
 

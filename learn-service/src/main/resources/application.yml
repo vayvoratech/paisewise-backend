@@ -10,9 +10,9 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/learn}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:Tony}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/rupee_db}
+    username: ${DB_USER:rupee}
+    password: ${DB_PASSWORD:rupee_local}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

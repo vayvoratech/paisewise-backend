@@ -19,7 +19,6 @@ spring:
           predicates:
             - Path=/auth/**
           filters:
-            - name: JwtValidation
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 10
@@ -33,7 +32,7 @@ spring:
               args:
                 retries: 3
                 statuses: BAD_GATEWAY, SERVICE_UNAVAILABLE
-                methods: GET
+                methods: GET, POST
 
         - id: profile-service
           uri: lb://profile-service

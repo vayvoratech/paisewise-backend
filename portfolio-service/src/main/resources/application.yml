@@ -73,4 +73,3 @@ fyers:
   access-token: ${FYERS_ACCESS_TOKEN:dummy_fyers_access_token}
   webhook-secret: ${FYERS_WEBHOOK_SECRET:dummy_fyers_webhook_secret}
   stub-mode: ${FYERS_STUB_MODE:true}
-
